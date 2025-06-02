@@ -1,0 +1,196 @@
+{
+  "grid": [
+    {
+      "id": "p1",
+      "xs": 12,
+      "class": "main",
+      "table": "unitextTable",
+      "height": "fill"
+    }
+  ],
+  "spacing": 10,
+
+  "p1": [
+    {
+      "title": "",
+      "type": "table",
+      "prop": "unitextTable",
+      "popupenable": true,
+
+      "columns": [
+        {
+          "prop": "did",
+          "title": "$Device",
+          "type": "droplist",
+          "data": "deviceList",
+          "width": 250
+        },
+
+        {
+          "prop": "prop",
+          "title": "$prop",
+          "type": "input",
+          "width": 150
+        },
+        {
+          "prop": "extype",
+          "title": "$extype",
+          "type": "droplist",
+          "width": 200,
+          "data": [
+            { "id": "pub", "title": "$pub" },
+            { "id": "set", "title": "$set" }
+          ]
+        },
+        {
+          "prop": "address",
+          "title": "$address",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "prop": "asdu",
+          "title": "Asdu",
+          "type": "number",
+          "default": 1
+        },
+        {
+          "prop": "ioObjMtype",
+          "title": "Information Object",
+          "type": "droplist",
+          "hide": "data.extype.id != 'pub'",
+          "data": [
+            {
+              "id": "1",
+              "title": "M_SP_NA (1)"
+            },
+            {
+              "id": "3",
+              "title": "M_DP_NA (3)"
+            },
+            {
+              "id": "5",
+              "title": "M_ST_NA (5)"
+            },
+            {
+              "id": "7",
+              "title": "M_BO_NA (7)"
+            },
+            {
+              "id": "9",
+              "title": "M_ME_NA (9)"
+            },
+            {
+              "id": "11",
+              "title": "M_ME_NB (11)"
+            },
+            {
+              "id": "13",
+              "title": "M_ME_NC (13)"
+            },
+            {
+              "id": "15",
+              "title": "M_IT_NA (15)"
+            },
+            {
+              "id": "30",
+              "title": "M_SP_TB (30)"
+            },
+            {
+              "id": "31",
+              "title": "M_DP_TB(31)"
+            },
+            {
+              "id": "32",
+              "title": "M_ST_TB (32)"
+            },
+            {
+              "id": "33",
+              "title": "M_BO_TB (33)"
+            },
+            {
+              "id": "34",
+              "title": "M_ME_TD (34)"
+            },
+            {
+              "id": "35",
+              "title": "M_ME_TE (35)"
+            },
+            {
+              "id": "36",
+              "title": "M_ME_TF (36)"
+            },
+            {
+              "id": "37",
+              "title": "M_IT_TB (37)"
+            }
+          ]
+        },
+        {
+          "prop": "ioObjCtype",
+          "title": "Control object type",
+          "type": "droplist",
+          "hide": "data.extype.id != 'set'",
+          "data": [
+            {
+              "id": "45",
+              "title": "C_SC_NA (45)"
+            },
+            {
+              "id": "46",
+              "title": "C_DC_NA (46)"
+            },
+            {
+              "id": "47",
+              "title": "C_RC_NA (47)"
+            },
+            {
+              "id": "48",
+              "title": "C_SE_NA (48)"
+            },
+            {
+              "id": "49",
+              "title": "C_SE_NB (49)"
+            },
+            {
+              "id": "50",
+              "title": "C_SE_NC (50)"
+            },
+            {
+              "id": "51",
+              "title": "C_BO_NA (51)"
+            },
+            {
+              "id": "58",
+              "title": "C_SC_TA (58)"
+            },
+            {
+              "id": "59",
+              "title": "C_DC_TA (59)"
+            },
+            {
+              "id": "60",
+              "title": "C_RC_TA (60)"
+            },
+            {
+              "id": "61",
+              "title": "C_SE_TA (61)"
+            },
+            {
+              "id": "62",
+              "title": "C_SE_TB (62)"
+            },
+            {
+              "id": "63",
+              "title": "C_SE_TC (63)"
+            },
+            {
+              "id": "64",
+              "title": "C_BO_TA (64)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

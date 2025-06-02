@@ -1,0 +1,12 @@
+{
+  "name": "iec60870-104server",
+  "description": "IEC 60870-104 server plugin",
+  "single": 0,
+  "extratab":1,
+  "nochannels":1,
+  "restartOnChannelsChange": 0,
+
+  "innerId":1,
+  "hasTryStartState":0
+
+}

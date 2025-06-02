@@ -1,0 +1,11 @@
+{
+  "name": "iec60870-104server",
+  "version": "0.4.5",
+  "description": "IEC 60870-104 server plugin",
+  "main": "index.js",
+  "dependencies": {
+    "ih-lib60870-node": "^1.0.55"
+  },
+  "author": "INTRA",
+  "license": "MIT"
+}
