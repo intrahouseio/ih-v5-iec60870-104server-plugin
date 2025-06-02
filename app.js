@@ -50,7 +50,7 @@ module.exports = function (plugin) {
               value: Number(item.value),
               asduAddress: Number(curitem.asdu),
               timestamp: Date.now(),
-              quality: Number(item.chstatus),
+              quality: item.chstatus != undefined ? Number(item.chstatus) : 0,
               cot: 3 // CoT=3 для spontaneous
             };
             curData[curitem.did + '.' + curitem.prop] = event;
@@ -64,7 +64,7 @@ module.exports = function (plugin) {
               value: Number(item.value),
               asduAddress: Number(curitem.asdu),
               timestamp: Date.now(),
-              quality: Number(item.chstatus),
+              quality: item.chstatus != undefined ? Number(item.chstatus) : 0,
               cot: 3 // CoT=3 для spontaneous
             };
             curCmd[curitem.did + '.' + curitem.prop] = cmd;
@@ -290,7 +290,7 @@ module.exports = function (plugin) {
 
     // Определение времени исполнения и типа команды для TypeID 45, 46, 58, 59
     let execTime = null;
-    let commandType = 'unknown';
+    let commandType = 'none';
     if ([45, 46, 58, 59].includes(typeId)) {
       switch (ql) {
         case 0:
@@ -370,45 +370,43 @@ module.exports = function (plugin) {
             cot: 7
           }]);
 
-          // Отправка значения в систему для TypeID 45, 46, 58, 59
-          if ([45, 46, 58, 59].includes(typeId)) {
-            const itemKey = `${asduAddress}.${ioa}`;
-            const filterItem = filter[itemKey];
-            if (filterItem) {
-              const { did, prop } = filterItem;
-              try {
-                plugin.send({
-                  type: 'command',
-                  command: 'setval',
-                  did,
-                  prop,
-                  value: processedVal
-                });
-                plugin.log(`Sent setval command: did=${did}, prop=${prop}, value=${processedVal}`, 2);
-              } catch (e) {
-                plugin.log(`Error in plugin.send: ${util.inspect(e)}`, 2);
-              }
-
-              // Сброс для QOC = 0, 1, 2
-              if (execTime !== null && execTime > 0) {
-                setTimeout(() => {
-                  try {
-                    plugin.send({
-                      type: 'command',
-                      command: 'setval',
-                      did,
-                      prop,
-                      value: 0
-                    });
-                    plugin.log(`Sent reset command: did=${did}, prop=${prop}, value=0 after ${execTime}ms`, 2);
-                  } catch (e) {
-                    plugin.log(`Error in plugin.send (reset): ${util.inspect(e)}`, 2);
-                  }
-                }, execTime);
-              }
-            } else {
-              plugin.log(`No filter item found for asduAddress=${asduAddress}, ioa=${ioa}, cannot send setval`, 2);
+          // Отправка значения в систему для всех TypeID
+          const itemKey = `${asduAddress}.${ioa}`;
+          const filterItem = filter[itemKey];
+          if (filterItem) {
+            const { did, prop } = filterItem;
+            try {
+              plugin.send({
+                type: 'command',
+                command: 'setval',
+                did,
+                prop,
+                value: processedVal
+              });
+              plugin.log(`Sent setval command: did=${did}, prop=${prop}, value=${processedVal}`, 2);
+            } catch (e) {
+              plugin.log(`Error in plugin.send: ${util.inspect(e)}`, 2);
             }
+
+            // Сброс для TypeID 45, 46, 58, 59 с QOC = 0, 1, 2
+            if ([45, 46, 58, 59].includes(typeId) && execTime !== null && execTime > 0) {
+              setTimeout(() => {
+                try {
+                  plugin.send({
+                    type: 'command',
+                    command: 'setval',
+                    did,
+                    prop,
+                    value: 0
+                  });
+                  plugin.log(`Sent reset command: did=${did}, prop=${prop}, value=0 after ${execTime}ms`, 2);
+                } catch (e) {
+                  plugin.log(`Error in plugin.send (reset): ${util.inspect(e)}`, 2);
+                }
+              }, execTime);
+            }
+          } else {
+            plugin.log(`No filter item found for asduAddress=${asduAddress}, ioa=${ioa}, cannot send setval`, 2);
           }
 
           // Отправка ответа с соответствующим TypeID
@@ -525,7 +523,7 @@ module.exports = function (plugin) {
                 break;
               case 100:
                 plugin.log(`Received Interrogation Command: clientId=${clientId}, ioa=${ioa}, qoi=${val}, asduAddress=${asduAddress}`, 2);
-                server.sendCommands(clientId, [{
+                server.sendCommands(Number(clientId), [{
                   typeId: 100,
                   ioa: 0,
                   value: val,
@@ -543,17 +541,17 @@ module.exports = function (plugin) {
                 plugin.log(`Received Read Command: clientId=${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 const curitem = item && item.did && item.prop ? curData[item.did + "." + item.prop] : null;
                 if (!item || !curitem || curitem.quality !== 0) {
-                  server.sendCommands(clientId, [{
+                  server.sendCommands(Number(clientId), [{
                     typeId: item?.ioObjMtype || 1,
                     ioa: ioa,
-                    value: 0,
+                    value: null,
                     asduAddress: asduAddress,
                     quality: 0x40,
                     cot: 47
                   }]);
                   plugin.log(`Error for Read Command: ${!item || !curitem ? "Unknown object" : `Invalid quality (${curitem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 } else {
-                  server.sendCommands(clientId, [{
+                  server.sendCommands(Number(clientId), [{
                     ...curitem,
                     cot: 5
                   }]);
@@ -561,7 +559,7 @@ module.exports = function (plugin) {
                 break;
               case 103:
                 plugin.log(`Received Clock Sync Command: clientId=${clientId}, ioa=${ioa}, timestamp=${timestamp}, asduAddress=${asduAddress}`, 2);
-                server.sendCommands(clientId, [{
+                server.sendCommands(Number(clientId), [{
                   typeId: 103,
                   ioa: 0,
                   timestamp: timestamp,
@@ -571,7 +569,7 @@ module.exports = function (plugin) {
                 break;
               default:
                 plugin.log(`Unhandled command typeId=${typeId}, clientId=${clientId}, ioa=${ioa}, value=${val}, asduAddress=${asduAddress}`, 2);
-                server.sendCommands(clientId, [{
+                server.sendCommands(Number(clientId), [{
                   typeId: typeId,
                   ioa: ioa,
                   value: val,
@@ -581,7 +579,7 @@ module.exports = function (plugin) {
             }
           } catch (e) {
             plugin.log(`ERROR Command: ${util.inspect(e)}`, 2);
-            server.sendCommands(clientId, [{
+            server.sendCommands(Number(clientId), [{
               typeId: cmd.typeId,
               ioa: cmd.ioa,
               value: cmd.val,
@@ -591,7 +589,7 @@ module.exports = function (plugin) {
           }
         });
       } else {
-        plugin.log(`Control Event: ${data.event}, Client ID: ${data.clientId}, Reason: ${data.reason}`, 2);
+        plugin.log(`Control Event: ${data.event}, Client ID: ${data.clientId}, Reason=${data.reason}`, 2);
       }
     }
   });
@@ -599,7 +597,7 @@ module.exports = function (plugin) {
   server.start({
     port: Number(params.port),
     serverID: "server IntraSCADA",
-    ipReserve: "192.168.1.2",
+    ipReserve: "0.0.0.0",
     params: {
       originatorAddress: Number(params.originatorAddress),
       k: Number(params.k),
