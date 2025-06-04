@@ -50,13 +50,20 @@
         },
         {
           "prop": "asdu",
-          "title": "Asdu",
+          "title": "$asdu",
           "type": "number",
           "default": 1
         },
         {
+          "prop": "interval",
+          "title": "$interval",
+          "type": "number",
+          "hide": "data.extype.id != 'pub'",
+          "default": 0
+        },
+        {
           "prop": "ioObjMtype",
-          "title": "Information Object",
+          "title": "$ioObjMtype",
           "type": "droplist",
           "hide": "data.extype.id != 'pub'",
           "data": [
@@ -128,7 +135,7 @@
         },
         {
           "prop": "ioObjCtype",
-          "title": "Control object type",
+          "title": "$ioObjCtype",
           "type": "droplist",
           "hide": "data.extype.id != 'set'",
           "data": [

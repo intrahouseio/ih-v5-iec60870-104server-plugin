@@ -8,6 +8,8 @@ module.exports = function (plugin) {
   let curCmd = {}; // Хранилище для команд с extype == 'set'
   let curDataArr = [];
   let clients = {};
+   // Хранилище для периодических задач, сгруппированных по interval
+  let periodicTasks = {};
   let filter = filterExtraChannels();
   subExtraChannels(filter);
 
@@ -18,6 +20,8 @@ module.exports = function (plugin) {
   // Хранилище для SBO
   const sboSelections = {};
   const SBO_TIMEOUT = 30000;
+
+ 
 
   // Валидация cmdExec
   const validCmdExec = ['direct', 'select'];
@@ -77,7 +81,7 @@ module.exports = function (plugin) {
       const status = server.getStatus();
       if (status.connectedClients.length > 0) {
         status.connectedClients.forEach(clientId => {
-          if (clients[clientId]?.activated == 1) {
+          if (clients[clientId]?.activated === 1) {
             try {
               const success = server.sendCommands(Number(clientId), curDataArr);
               if (success) {
@@ -97,11 +101,14 @@ module.exports = function (plugin) {
     });
   }
 
-  plugin.onChange('extra', async () => {
-    plugin.log('onChange extra', 2);
-    extraChannels = await plugin.extra.get();
+  plugin.onChange('extra', async (recs) => {
+    plugin.log('onChange Extra ' + util.inspect(recs), 2);
+    // Очистка существующих периодических задач
+    Object.values(periodicTasks).forEach(task => clearInterval(task.timerId));
+    extraChannels = await plugin.extra.get();    
     curData = {}; // Очистка curData
     curCmd = {}; // Очистка curCmd
+    periodicTasks = {};
     filter = filterExtraChannels();
     subExtraChannels(filter);
   });
@@ -169,6 +176,45 @@ module.exports = function (plugin) {
       }
     } else {
       plugin.log(`No current values to send to client ${clientId}`, 2);
+    }
+  }
+
+  // Функция отправки периодических данных для всех объектов с заданным interval
+  function sendPeriodicDataByInterval(intervalMs) {
+    const task = periodicTasks[intervalMs];
+    if (!task) return;
+
+    const dataToSend = [];
+    task.didProps.forEach(didProp => {
+      const item = filter[didProp];
+      if (item && item.extype === 'pub') {
+        const data = curData[didProp];
+        if (data) {
+          dataToSend.push({ ...data, cot: 20 });
+        }
+      }
+    });
+
+    if (dataToSend.length > 0) {
+      const status = server.getStatus();
+      if (status.connectedClients.length > 0) {
+        status.connectedClients.forEach(clientId => {
+          if (clients[clientId]?.activated === 1) {
+            try {
+              const success = server.sendCommands(Number(clientId), dataToSend);
+              if (success) {
+                plugin.log(`Sent ${dataToSend.length} periodic data items for interval ${intervalMs / 60000} minutes to client ${clientId}: ${util.inspect(dataToSend)}`, 2);
+              } else {
+                plugin.log(`Failed to send ${dataToSend.length} periodic data items for interval ${intervalMs / 60000} minutes to client ${clientId}`, 2);
+              }
+            } catch (e) {
+              plugin.log(`Error sending periodic data for interval ${intervalMs / 60000} minutes to client ${clientId}: ${util.inspect(e)}`, 2);
+            }
+          }
+        });
+      } else {
+        plugin.log(`No clients connected to send periodic data for interval ${intervalMs / 60000} minutes`, 2);
+      }
     }
   }
 
@@ -245,42 +291,54 @@ module.exports = function (plugin) {
   // Универсальная функция обработки управляющих команд
   function handleControlCommand(clientId, typeId, ioa, val, ql, timestamp, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, responseTypeId) {
     if (!item) {
-      server.sendCommands(clientId, [{
-        typeId,
-        ioa,
-        value: val,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
+      try {
+        server.sendCommands(clientId, [{
+          typeId,
+          ioa,
+          value: val,
+          timestamp,
+          asduAddress,
+          cot: 10
+        }]);
+      } catch (e) {
+        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+      }
       plugin.log(`Error for command typeId=${typeId}: Unknown object, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
     // Проверка команды в curCmd
     if (!cmdItem || cmdItem.quality !== 0) {
-      server.sendCommands(clientId, [{
-        typeId,
-        ioa,
-        value: val,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
+      try {
+        server.sendCommands(clientId, [{
+          typeId,
+          ioa,
+          value: val,
+          timestamp,
+          asduAddress,
+          cot: 10
+        }]);
+      } catch (e) {
+        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+      }
       plugin.log(`Error for command typeId=${typeId}: ${!cmdItem ? 'No command in curCmd' : `Invalid quality (${cmdItem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
     // Валидация значения команды
     if (!validateCommandValue(typeId, val)) {
-      server.sendCommands(clientId, [{
-        typeId,
-        ioa,
-        value: val,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
+      try {
+        server.sendCommands(clientId, [{
+          typeId,
+          ioa,
+          value: val,
+          timestamp,
+          asduAddress,
+          cot: 10
+        }]);
+      } catch (e) {
+        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+      }
       plugin.log(`Invalid value ${val} for typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
@@ -310,14 +368,18 @@ module.exports = function (plugin) {
           commandType = 'persistent';
           break;
         default:
-          server.sendCommands(clientId, [{
-            typeId,
-            ioa,
-            value: val,
-            timestamp,
-            asduAddress,
-            cot: 10
-          }]);
+          try {
+            server.sendCommands(clientId, [{
+              typeId,
+              ioa,
+              value: val,
+              timestamp,
+              asduAddress,
+              cot: 10
+            }]);
+          } catch (e) {
+            plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+          }
           plugin.log(`Invalid QOC ${ql} for typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
           return;
       }
@@ -325,36 +387,48 @@ module.exports = function (plugin) {
     }
 
     if (cmdExec === 'direct' && bselCmd) {
-      server.sendCommands(clientId, [{
-        typeId,
-        ioa,
-        value: processedVal,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
+      try {
+        server.sendCommands(clientId, [{
+          typeId,
+          ioa,
+          value: processedVal,
+          timestamp,
+          asduAddress,
+          cot: 10
+        }]);
+      } catch (e) {
+        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+      }
       plugin.log(`Select not allowed in direct mode for typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
     } else if (cmdExec === 'select' && !bselCmd && !sboClient[sboKey]) {
-      server.sendCommands(clientId, [{
-        typeId,
-        ioa,
-        value: processedVal,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
+      try {
+        server.sendCommands(clientId, [{
+          typeId,
+          ioa,
+          value: processedVal,
+          timestamp,
+          asduAddress,
+          cot: 10
+        }]);
+      } catch (e) {
+        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+      }
       plugin.log(`Direct command not allowed in SBO mode for typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
     } else if (cmdExec === 'select' && bselCmd) {
       sboSelections[clientId] = sboSelections[clientId] || {};
       sboSelections[clientId][sboKey] = { ioa, asduAddress, timestamp: Date.now() };
-      server.sendCommands(clientId, [{
-        typeId,
-        ioa,
-        value: processedVal,
-        timestamp,
-        asduAddress,
-        cot: 7
-      }]);
+      try {
+        server.sendCommands(clientId, [{
+          typeId,
+          ioa,
+          value: processedVal,
+          timestamp,
+          asduAddress,
+          cot: 7
+        }]);
+      } catch (e) {
+        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+      }
       plugin.log(`SBO Select successful for client ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       cleanupSboSelections();
     } else {
@@ -427,6 +501,21 @@ module.exports = function (plugin) {
           }
         } catch (e) {
           plugin.log(`Error sending command for client ${clientId}: ${util.inspect(e)}`, 2);
+          try {
+            server.sendCommands(clientId, [{
+              typeId,
+              ioa,
+              value: processedVal,
+              timestamp,
+              asduAddress,
+              cot: 10
+            }]);
+          } catch (err) {
+            plugin.log(`Error in server.sendCommands: ${util.inspect(err)}`, 2);
+          }
+        }
+      } else {
+        try {
           server.sendCommands(clientId, [{
             typeId,
             ioa,
@@ -435,16 +524,9 @@ module.exports = function (plugin) {
             asduAddress,
             cot: 10
           }]);
+        } catch (e) {
+          plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
         }
-      } else {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: processedVal,
-          timestamp,
-          asduAddress,
-          cot: 10
-        }]);
         plugin.log(`SBO Operate failed: No prior Select for client ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       }
     }
@@ -527,7 +609,7 @@ module.exports = function (plugin) {
                   typeId: 100,
                   ioa: 0,
                   value: val,
-                  asduAddress: asduAddress,
+                  asduAddress,
                   cot: 7
                 }]);
                 sendCurrentValues(clientId);
@@ -541,40 +623,40 @@ module.exports = function (plugin) {
                 plugin.log(`Received Read Command: clientId=${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 const curitem = item && item.did && item.prop ? curData[item.did + "." + item.prop] : null;
                 if (!item || !curitem || curitem.quality !== 0) {
-                  server.sendCommands(Number(clientId), [{
-                    typeId: item?.ioObjMtype || 1,
-                    ioa: ioa,
-                    value: null,
-                    asduAddress: asduAddress,
-                    quality: 0x40,
-                    cot: 47
-                  }]);
-                  plugin.log(`Error for Read Command: ${!item || !curitem ? "Unknown object" : `Invalid quality (${curitem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+                    server.sendCommands(Number(clientId), [{
+                        typeId: item?.ioObjMtype || 1,
+                        ioa,
+                        value: null,
+                        asduAddress,
+                        quality: 0x40,
+                        cot: 47
+                    }]);
+                    plugin.log(`Error for Read Command: ${!item || !curitem ? "Unknown object" : `Invalid quality (${curitem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 } else {
-                  server.sendCommands(Number(clientId), [{
-                    ...curitem,
-                    cot: 5
-                  }]);
+                    server.sendCommands(Number(clientId), [{
+                        ...curitem,
+                        cot: 5
+                    }]);
                 }
                 break;
               case 103:
                 plugin.log(`Received Clock Sync Command: clientId=${clientId}, ioa=${ioa}, timestamp=${timestamp}, asduAddress=${asduAddress}`, 2);
                 server.sendCommands(Number(clientId), [{
-                  typeId: 103,
-                  ioa: 0,
-                  timestamp: timestamp,
-                  asduAddress: asduAddress,
-                  cot: 7
+                    typeId: 103,
+                    ioa: 0,
+                    timestamp,
+                    asduAddress,
+                    cot: 7
                 }]);
                 break;
               default:
-                plugin.log(`Unhandled command typeId=${typeId}, clientId=${clientId}, ioa=${ioa}, value=${val}, asduAddress=${asduAddress}`, 2);
+                plugin.log(`Unknown command typeId=${typeId}, clientId=${clientId}, ioa=${ioa}, value=${val}, asduAddress=${asduAddress}`, 2);
                 server.sendCommands(Number(clientId), [{
-                  typeId: typeId,
-                  ioa: ioa,
-                  value: val,
-                  asduAddress: asduAddress,
-                  cot: 10
+                    typeId,
+                    ioa,
+                    value: val,
+                    asduAddress,
+                    cot: 10
                 }]);
             }
           } catch (e) {
@@ -597,7 +679,7 @@ module.exports = function (plugin) {
   server.start({
     port: Number(params.port),
     serverID: "server IntraSCADA",
-    ipReserve: "0.0.0.0",
+    ipAddress: "0.0.0.0",
     params: {
       originatorAddress: Number(params.originatorAddress),
       k: Number(params.k),
@@ -615,6 +697,8 @@ module.exports = function (plugin) {
   });
 
   function terminate() {
+    // Очистка периодических задач
+    Object.values(periodicTasks).forEach(task => clearInterval(task.timerId));
     plugin.log('TERMINATE PLUGIN', 2);
     plugin.exit();
   }
@@ -625,10 +709,27 @@ module.exports = function (plugin) {
       plugin.log('Error: extraChannels is not an array', 2);
       return res;
     }
+
     extraChannels.forEach(item => {
-      res.did_prop.push(item.did + "." + item.prop);
-      res[item.did + '.' + item.prop] = item;
+      const didProp = item.did + '.' + item.prop;
+      res.did_prop.push(didProp);
+      res[didProp] = item;
       res[item.asdu + '.' + item.address] = item;
+
+      // Группировка периодических задач по interval для pub
+      if (item.extype === 'pub' && item.interval !== undefined && !isNaN(Number(item.interval)) && Number(item.interval) > 0) {
+        const intervalMs = Number(item.interval) * 60 * 1000; // Конвертация минут в миллисекунды
+        if (!periodicTasks[intervalMs]) {
+          periodicTasks[intervalMs] = {
+            didProps: [],
+            timerId: setInterval(() => {
+              sendPeriodicDataByInterval(intervalMs);
+            }, intervalMs)
+          };
+          plugin.log(`Set periodic task for interval ${intervalMs / 60000} minutes`, 2);
+        }
+        periodicTasks[intervalMs].didProps.push(didProp);
+      }
     });
     return res;
   }

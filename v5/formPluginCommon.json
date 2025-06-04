@@ -15,32 +15,32 @@
     { "prop": "name", "title": "$Name", "type": "input" },
     {
       "prop": "port",
-      "title": "Port",
+      "title": "$port",
       "type": "input",
       "default": "2404"
     },
     {
       "prop": "asdu",
-      "title": "ASDU",
+      "title": "$asdu",
       "type": "input",
       "default": 1
     },
     {
       "prop": "originatorAddress",
-      "title": "Оriginator address",
+      "title": "$originatorAddress",
       "type": "input",
       "default": "1"
     },
    
     {
       "prop": "maxClients",
-      "title": "Max clients",
+      "title": "$maxClients",
       "type": "input",
       "default": 10
     },
     {
       "prop": "maxBufferSize",
-      "title": "Max buffer size",
+      "title": "$maxBufferSize",
       "type": "input",
       "default": 5000
     }
@@ -50,37 +50,37 @@
   "p2": [
     {
       "prop": "k",
-      "title": "Parameter K",
+      "title": "$paramK",
       "type": "input",
       "default": "12"
     },
     {
       "prop": "w",
-      "title": "Parameter W",
+      "title": "$paramW",
       "type": "input",
       "default": "8"
     },
     {
       "prop": "t0",
-      "title": "Parameter T0",
+      "title": "$paramT0",
       "type": "input",
       "default": "30"
     },
     {
       "prop": "t1",
-      "title": "Parameter T1",
+      "title": "$paramT1",
       "type": "input",
       "default": "15"
     },
     {
       "prop": "t2",
-      "title": "Parameter T2",
+      "title": "$paramT2",
       "type": "input",
       "default": "10"
     },
     {
       "prop": "t3",
-      "title": "Parameter T3",
+      "title": "$paramT3",
       "type": "input",
       "default": "20"
     }
@@ -88,7 +88,7 @@
   "p3": [
     {
       "prop": "tzondevice",
-      "title": "Time zone on device",
+      "title": "$tzondevice",
       "type": "droplist",
       "data": [
         {
@@ -154,23 +154,24 @@
       "data": [
         { "id": "direct", "title": "$direct" },
         { "id": "select", "title": "$select" }
-      ]
+      ],
+      "default": "direct"
     },
     {
       "prop": "execdefault",
-      "title": "Execution default time, ms",
+      "title": "$execdefault",
       "type": "number",
       "default": 2000
     },
     {
       "prop": "execshort",
-      "title": "Execution short time, ms",
+      "title": "$execshort",
       "type": "number",
-      "default": 500
+      "default": 1000
     },
     {
       "prop": "execlong",
-      "title": "Execution long time, ms",
+      "title": "$execlong",
       "type": "number",
       "default": 5000
     },
