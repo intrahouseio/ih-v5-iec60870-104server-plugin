@@ -1,0 +1,3217 @@
+[
+  {
+    "id": "pagegroup",
+    "title": "Docs",
+    "parent": 0,
+    "folder": 1,
+    "children": [
+      {
+        "id": "pggr023",
+        "title": "Введение",
+        "order": 63,
+        "alias": "",
+        "children": [
+          {
+            "id": "pg003",
+            "title": "О системе IntraSCADA",
+            "order": 1000,
+            "alias": ""
+          },
+          {
+            "id": "pggr031",
+            "title": "Общие концепции",
+            "order": 2750,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg075",
+                "title": "Архитектура системы",
+                "order": 250,
+                "alias": ""
+              },
+              {
+                "id": "pg222",
+                "title": "Работа с оборудованием",
+                "order": 1125,
+                "alias": ""
+              },
+              { "id": "pg160", "title": "Скрипты", "order": 1563, "alias": "" },
+              {
+                "id": "pg721",
+                "title": "Библиотеки функций",
+                "order": 1673,
+                "alias": ""
+              },
+              {
+                "id": "pg167",
+                "title": "Диагностика",
+                "order": 5000,
+                "alias": ""
+              }
+            ]
+          },
+          {
+            "id": "pggr061",
+            "title": "Версии",
+            "order": 5000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg274",
+                "title": "Регламент выхода новых версий",
+                "order": 500,
+                "alias": ""
+              },
+              {
+                "id": "pg096",
+                "title": "История версий",
+                "order": 750,
+                "alias": "changelog"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pggr024",
+        "title": "Установка и запуск",
+        "order": 532,
+        "alias": "",
+        "children": [
+          {
+            "id": "pg275",
+            "title": "Технические требования",
+            "order": 63,
+            "alias": ""
+          },
+          {
+            "id": "pggr056",
+            "title": "Установка системы",
+            "order": 125,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg241",
+                "title": "Все варианты",
+                "order": 1000,
+                "alias": "intrascada-installation"
+              },
+              {
+                "id": "pg299",
+                "title": "ALT Linux",
+                "order": 1250,
+                "alias": "intrascada_altlinux"
+              },
+              {
+                "id": "pg258",
+                "title": "Astra Linux",
+                "order": 1375,
+                "alias": "intrascada_astra"
+              },
+              {
+                "id": "pg239",
+                "title": "Linux (Deb)",
+                "order": 2000,
+                "alias": "intrascada_deb"
+              },
+              {
+                "id": "pg298",
+                "title": "Linux (RPM)",
+                "order": 2750,
+                "alias": "intrascada_rmp"
+              },
+              {
+                "id": "pg251",
+                "title": "Windows",
+                "order": 3500,
+                "alias": "intrascada_win"
+              },
+              {
+                "id": "pg244",
+                "title": "Wiren Board",
+                "order": 3750,
+                "alias": "intrascada_wb"
+              },
+              {
+                "id": "pg319",
+                "title": "JetHome",
+                "order": 3782,
+                "alias": "intrascada_jethome"
+              },
+              {
+                "id": "pg300",
+                "title": "macOS",
+                "order": 3875,
+                "alias": "intrascada_macos"
+              },
+              {
+                "id": "pg323",
+                "title": "РЕД ОС",
+                "order": 3938,
+                "alias": "intrascada_redos"
+              }
+            ]
+          },
+          {
+            "id": "pg004",
+            "title": "Первый запуск",
+            "order": 3000,
+            "alias": "firststart"
+          },
+          {
+            "id": "pg166",
+            "title": "Лицензирование",
+            "order": 4000,
+            "alias": "licensing"
+          }
+        ]
+      },
+      {
+        "id": "pggr002",
+        "title": "Интерфейс разработчика",
+        "order": 1024,
+        "alias": "",
+        "children": [
+          {
+            "id": "pg005",
+            "title": "Общее описание",
+            "order": 1000,
+            "alias": ""
+          },
+          {
+            "id": "pggr077",
+            "title": "Инфопанель",
+            "order": 1500,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg331",
+                "title": "О системе",
+                "order": 2000,
+                "alias": ""
+              },
+              {
+                "id": "pg332",
+                "title": "Обновление",
+                "order": 3000,
+                "alias": ""
+              },
+              { "id": "pg333", "title": "Плагины", "order": 4000, "alias": "" },
+              {
+                "id": "pg334",
+                "title": "Лицензии",
+                "order": 5000,
+                "alias": ""
+              },
+              {
+                "id": "pg335",
+                "title": "Удаленный доступ",
+                "order": 6000,
+                "alias": ""
+              },
+              { "id": "pg336", "title": "Консоль", "order": 7000, "alias": "" },
+              { "id": "pg337", "title": "Процессы", "order": 8000, "alias": "" }
+            ]
+          },
+          {
+            "id": "pggr004",
+            "title": "Структура проекта",
+            "order": 4500,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg010",
+                "title": "Общее описание",
+                "order": 2000,
+                "alias": ""
+              },
+              {
+                "id": "pggr005",
+                "title": "Устройства",
+                "order": 3000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg011",
+                    "title": "Общее описание",
+                    "order": 250,
+                    "alias": "devdevices"
+                  },
+                  {
+                    "id": "pg209",
+                    "title": "Экземпляры устройств",
+                    "order": 1250,
+                    "alias": "instances"
+                  },
+                  {
+                    "id": "pggr039",
+                    "title": "Механизм каналов",
+                    "order": 8000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg017",
+                        "title": "Привязка каналов",
+                        "order": 500,
+                        "alias": "channels"
+                      },
+                      {
+                        "id": "pg174",
+                        "title": "Индикация связи с каналом",
+                        "order": 750,
+                        "alias": "chstatus"
+                      },
+                      {
+                        "id": "pg268",
+                        "title": "Блокировка каналов",
+                        "order": 875,
+                        "alias": "blkchannel"
+                      },
+                      {
+                        "id": "pg159",
+                        "title": "Примеры",
+                        "order": 1000,
+                        "alias": "variousdimmers"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pg203",
+                    "title": "Отладчик",
+                    "order": 12000,
+                    "alias": "debugger"
+                  },
+                  {
+                    "id": "pg210",
+                    "title": "Журнал устройства",
+                    "order": 13000,
+                    "alias": "device_journal"
+                  }
+                ]
+              },
+              {
+                "id": "pggr053",
+                "title": "Системные индикаторы",
+                "order": 3500,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg018",
+                    "title": "Общее описание",
+                    "order": 1000,
+                    "alias": "sysdevices"
+                  },
+                  {
+                    "id": "pggr079",
+                    "title": "Индикаторы процессов",
+                    "order": 4000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg235",
+                        "title": "Индикаторы плагинов",
+                        "order": 1000,
+                        "alias": "sysdevices_plugins"
+                      },
+                      {
+                        "id": "pg236",
+                        "title": "Индикаторы агентов БД",
+                        "order": 2000,
+                        "alias": "sysdevices_dbagents"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "pggr054",
+                "title": "Глобальные переменные",
+                "order": 4250,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg019",
+                    "title": "Общее описание",
+                    "order": 1000,
+                    "alias": "globals"
+                  },
+                  {
+                    "id": "pg237",
+                    "title": "Параметры",
+                    "order": 2000,
+                    "alias": "globals_params"
+                  },
+                  {
+                    "id": "pg238",
+                    "title": "Примеры",
+                    "order": 3000,
+                    "alias": "globals_examples"
+                  }
+                ]
+              },
+              {
+                "id": "pggr055",
+                "title": "Типы устройств",
+                "order": 5250,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg097",
+                    "title": "Общее описание",
+                    "order": 1000,
+                    "alias": "types"
+                  },
+                  {
+                    "id": "pg016",
+                    "title": "Команды",
+                    "order": 1188,
+                    "alias": "commands"
+                  },
+                  {
+                    "id": "pg015",
+                    "title": "Обработчики",
+                    "order": 3000,
+                    "alias": "devhandlers"
+                  },
+                  {
+                    "id": "pg154",
+                    "title": "Тревоги",
+                    "order": 4000,
+                    "alias": "alarms"
+                  }
+                ]
+              },
+              {
+                "id": "pggr076",
+                "title": "Обработчики",
+                "order": 6250,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg329",
+                    "title": "Виды обработчиков",
+                    "order": 500,
+                    "alias": "handler_description"
+                  },
+                  {
+                    "id": "pg012",
+                    "title": "Доступ к свойствам устройства",
+                    "order": 750,
+                    "alias": "types_props"
+                  },
+                  {
+                    "id": "pg013",
+                    "title": "API устройства",
+                    "order": 875,
+                    "alias": "devapi"
+                  },
+                  {
+                    "id": "pg014",
+                    "title": "Таймеры",
+                    "order": 938,
+                    "alias": "timers"
+                  },
+                  {
+                    "id": "pg724",
+                    "title": "Запись в историческую БД",
+                    "order": 969,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg327",
+                    "title": "Библиотека обработчиков",
+                    "order": 1000,
+                    "alias": "handler_library"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "pggr006",
+            "title": "Визуализация",
+            "order": 6000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg022",
+                "title": "Введение",
+                "order": 1000,
+                "alias": ""
+              },
+              {
+                "id": "pg024",
+                "title": "Общая информация",
+                "order": 2000,
+                "alias": ""
+              },
+              {
+                "id": "pg025",
+                "title": "Экраны",
+                "order": 3000,
+                "alias": "layout"
+              },
+              {
+                "id": "pg026",
+                "title": "Контейнеры",
+                "order": 4000,
+                "alias": "viscont"
+              },
+              {
+                "id": "pg027",
+                "title": "Диалоги",
+                "order": 5000,
+                "alias": "dialog"
+              },
+              {
+                "id": "pg028",
+                "title": "Шаблоны визуализации",
+                "order": 6000,
+                "alias": "vistemplate"
+              },
+              { "id": "pg352", "title": "Карты", "order": 7750, "alias": "" },
+              {
+                "id": "pggr007",
+                "title": "Элементы",
+                "order": 8125,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg029",
+                    "title": "Общее описание",
+                    "order": 1000,
+                    "alias": "elements"
+                  },
+                  {
+                    "id": "pg030",
+                    "title": "Общие свойства",
+                    "order": 2000,
+                    "alias": "all_property"
+                  },
+                  {
+                    "id": "pg031",
+                    "title": "Привязки",
+                    "order": 3000,
+                    "alias": "el-links"
+                  },
+                  {
+                    "id": "pggr044",
+                    "title": "Basic",
+                    "order": 3500,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg032",
+                        "title": "- Rectangle",
+                        "order": 1000,
+                        "alias": "rectangle"
+                      },
+                      {
+                        "id": "pg033",
+                        "title": "- Circle",
+                        "order": 2000,
+                        "alias": "circle"
+                      },
+                      {
+                        "id": "pg034",
+                        "title": "- Text",
+                        "order": 3000,
+                        "alias": "text"
+                      },
+                      {
+                        "id": "pg035",
+                        "title": "- Image",
+                        "order": 4000,
+                        "alias": "image"
+                      },
+                      {
+                        "id": "pg037",
+                        "title": "- Button",
+                        "order": 5000,
+                        "alias": "button"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr045",
+                    "title": "Interactive",
+                    "order": 6500,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg194",
+                        "title": " - Input",
+                        "order": 1000,
+                        "alias": "inputs"
+                      },
+                      {
+                        "id": "pg038",
+                        "title": "- Slider",
+                        "order": 2000,
+                        "alias": "slider"
+                      },
+                      {
+                        "id": "pg182",
+                        "title": "- Checkbox",
+                        "order": 3000,
+                        "alias": "checkbox"
+                      },
+                      {
+                        "id": "pg212",
+                        "title": " - Date Range",
+                        "order": 4000,
+                        "alias": "date_range"
+                      },
+                      {
+                        "id": "pg184",
+                        "title": "- Calendar",
+                        "order": 5000,
+                        "alias": "calendar"
+                      },
+                      {
+                        "id": "pg410",
+                        "title": "- Sector",
+                        "order": 6000,
+                        "alias": ""
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr046",
+                    "title": "View",
+                    "order": 8750,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg179",
+                        "title": "- List",
+                        "order": 1000,
+                        "alias": "list"
+                      },
+                      {
+                        "id": "pg181",
+                        "title": "- Autocomplete",
+                        "order": 2000,
+                        "alias": "autocomplete"
+                      },
+                      {
+                        "id": "pg180",
+                        "title": "- Table",
+                        "order": 3000,
+                        "alias": "table"
+                      },
+                      {
+                        "id": "pg183",
+                        "title": "- Tree",
+                        "order": 4000,
+                        "alias": "tree"
+                      },
+                      {
+                        "id": "pg389",
+                        "title": "- Grid",
+                        "order": 5000,
+                        "alias": "greed"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr047",
+                    "title": "Charts",
+                    "order": 12375,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg328",
+                        "title": "Виды графиков",
+                        "order": 500,
+                        "alias": "vischarts"
+                      },
+                      {
+                        "id": "pg190",
+                        "title": "- Chart Line",
+                        "order": 1000,
+                        "alias": "chart_line"
+                      },
+                      {
+                        "id": "pg213",
+                        "title": "- Chart Multiline",
+                        "order": 2000,
+                        "alias": "chart_multiline"
+                      },
+                      {
+                        "id": "pg214",
+                        "title": "- Chart Timeline",
+                        "order": 3000,
+                        "alias": "chart_timeline"
+                      },
+                      {
+                        "id": "pg215",
+                        "title": "- Chart Columns",
+                        "order": 4000,
+                        "alias": "chart_columns"
+                      },
+                      {
+                        "id": "pg216",
+                        "title": "- Chart Pie",
+                        "order": 5000,
+                        "alias": "chart_pie"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr048",
+                    "title": "Widgets",
+                    "order": 14672,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg187",
+                        "title": "- Iframe",
+                        "order": 1000,
+                        "alias": "iframe"
+                      },
+                      {
+                        "id": "pg188",
+                        "title": "- HTML",
+                        "order": 2000,
+                        "alias": "html"
+                      },
+                      {
+                        "id": "pg189",
+                        "title": "- CCTV",
+                        "order": 3000,
+                        "alias": "cctv"
+                      },
+                      {
+                        "id": "pg325",
+                        "title": "- Map",
+                        "order": 3500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg186",
+                        "title": "- Device log",
+                        "order": 5000,
+                        "alias": "device_log"
+                      },
+                      {
+                        "id": "pg191",
+                        "title": "- Journal",
+                        "order": 6000,
+                        "alias": "journal"
+                      },
+                      {
+                        "id": "pg192",
+                        "title": "- Alert journal",
+                        "order": 7000,
+                        "alias": "alert_journal"
+                      },
+                      {
+                        "id": "pg193",
+                        "title": "-  Report",
+                        "order": 8000,
+                        "alias": "report"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "pggr037",
+                "title": "Cкрипты визуализации",
+                "order": 8500,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg098",
+                    "title": "Для чего используются",
+                    "order": 2000,
+                    "alias": "visscripts"
+                  },
+                  {
+                    "id": "pg163",
+                    "title": "Отличие от сценариев",
+                    "order": 2250,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg161",
+                    "title": "Структура скрипта",
+                    "order": 2500,
+                    "alias": "visscript"
+                  },
+                  {
+                    "id": "pg482",
+                    "title": "Асинхронные функции",
+                    "order": 2563,
+                    "alias": "asyncfun"
+                  },
+                  {
+                    "id": "pggr086",
+                    "title": "API скрипта визуализации",
+                    "order": 2625,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg367",
+                        "title": "Работа с клиентом",
+                        "order": 250,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg723",
+                        "title": "Завершение сеанса",
+                        "order": 313,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg368",
+                        "title": "Доступ к устройствам и глобальным переменным",
+                        "order": 375,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg370",
+                        "title": "Запись в главный журнал",
+                        "order": 438,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg371",
+                        "title": "Вызов диалога, звуковое оповещение",
+                        "order": 469,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg372",
+                        "title": "Информирование",
+                        "order": 485,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg429",
+                        "title": "Действия со сценариями",
+                        "order": 493,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg374",
+                        "title": "Временная задержка",
+                        "order": 1497,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg375",
+                        "title": "Отправка команды плагину",
+                        "order": 2508,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg377",
+                        "title": "Снимок с камеры",
+                        "order": 2516,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg378",
+                        "title": "Генерация отчёта",
+                        "order": 2532,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg380",
+                        "title": "Работа с тревогами",
+                        "order": 3000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg382",
+                        "title": "Работа с файлами",
+                        "order": 3500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg727",
+                        "title": "Работа с клиентскими данными ",
+                        "order": 3625,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg379",
+                        "title": "Работа с деревьями проекта",
+                        "order": 3750,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg381",
+                        "title": "Работа с пользовательскими таблицами",
+                        "order": 4000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg383",
+                        "title": "Чтение исторических данных",
+                        "order": 4500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg384",
+                        "title": "Системные функции",
+                        "order": 5000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pggr111",
+                        "title": "Операции CRUD",
+                        "order": 6500,
+                        "alias": "",
+                        "children": [
+                          {
+                            "id": "pg484",
+                            "title": "Операции CRUD в проекте",
+                            "order": 500,
+                            "alias": "viscrud"
+                          },
+                          {
+                            "id": "pg485",
+                            "title": "Обработка ошибок",
+                            "order": 750,
+                            "alias": "viscruderror"
+                          },
+                          {
+                            "id": "pg483",
+                            "title": "Работа с устройствами",
+                            "order": 1000,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg376",
+                            "title": "Работа с плагинами",
+                            "order": 1500,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg468",
+                            "title": "Работа с каналами",
+                            "order": 2000,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg582",
+                            "title": "Работа с папками/узлами каналов",
+                            "order": 2250,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg583",
+                            "title": "Работа с графиками",
+                            "order": 2500,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg729",
+                            "title": "Работа с учетными записями пользователей",
+                            "order": 3500,
+                            "alias": ""
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pg245",
+                    "title": "Стартовый скрипт сеанса",
+                    "order": 3375,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg153",
+                    "title": "Скрипты заполнения",
+                    "order": 3688,
+                    "alias": "visscriptfilling"
+                  },
+                  {
+                    "id": "pggr040",
+                    "title": "Примеры",
+                    "order": 4000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg164",
+                        "title": "Список снапшотов с ip камеры по датам",
+                        "order": 1000,
+                        "alias": ""
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "pg171",
+                "title": "Переменные клиента",
+                "order": 9500,
+                "alias": "client_vars"
+              },
+              {
+                "id": "pg207",
+                "title": "Динамическая привязка устройств",
+                "order": 10500,
+                "alias": "linkWithLocals"
+              },
+              {
+                "id": "pggr014",
+                "title": "Примеры Анимации",
+                "order": 11500,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg269",
+                    "title": "Анимация",
+                    "order": 500,
+                    "alias": "animation"
+                  },
+                  {
+                    "id": "pg063",
+                    "title": "Часы",
+                    "order": 1000,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg064",
+                    "title": "Уровень воды",
+                    "order": 2000,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg065",
+                    "title": "Стрелочный прибор",
+                    "order": 3000,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg066",
+                    "title": "Различные диммеры",
+                    "order": 4000,
+                    "alias": ""
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "pggr064",
+            "title": "Автоматизация",
+            "order": 7000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pggr008",
+                "title": "Сценарии",
+                "order": 1000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pggr080",
+                    "title": "Общее описание",
+                    "order": 750,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg039",
+                        "title": "Общее описание",
+                        "order": 1000,
+                        "alias": "scenes"
+                      },
+                      {
+                        "id": "pg147",
+                        "title": "Структура сценария",
+                        "order": 2000,
+                        "alias": "scenes_structure"
+                      },
+                      {
+                        "id": "pg139",
+                        "title": "Правила присваивания имен",
+                        "order": 3000,
+                        "alias": "id_rules"
+                      },
+                      {
+                        "id": "pg137",
+                        "title": "Цикл работы сценария",
+                        "order": 4000,
+                        "alias": "cycle"
+                      },
+                      {
+                        "id": "pg041",
+                        "title": "Мультисценарии",
+                        "order": 5000,
+                        "alias": "scenes_multi"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr081",
+                    "title": "API",
+                    "order": 2438,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pggr082",
+                        "title": "Работа с устройствами",
+                        "order": 1000,
+                        "alias": "",
+                        "children": [
+                          {
+                            "id": "pg138",
+                            "title": "Работа с устройствами",
+                            "order": 2000,
+                            "alias": "scenes_devices"
+                          },
+                          {
+                            "id": "pg158",
+                            "title": "Работа с группой устройств",
+                            "order": 3000,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg267",
+                            "title": "Работа с тревогами",
+                            "order": 4000,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg363",
+                            "title": "Работа с таймерами",
+                            "order": 5000,
+                            "alias": ""
+                          },
+                          {
+                            "id": "pg364",
+                            "title": "Слушатели событий",
+                            "order": 6000,
+                            "alias": ""
+                          }
+                        ]
+                      },
+                      {
+                        "id": "pg365",
+                        "title": "Взаимодействие с внешними сервисами",
+                        "order": 2500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg355",
+                        "title": "Работа с файлами",
+                        "order": 4000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg356",
+                        "title": "Работа с данными",
+                        "order": 5000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg357",
+                        "title": "Взаимодействие с активными клиентами",
+                        "order": 6000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg042",
+                        "title": "Встроенные методы",
+                        "order": 7000,
+                        "alias": "scenes_command"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr009",
+                    "title": "Примеры",
+                    "order": 6000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pggr038",
+                        "title": "Безопасность",
+                        "order": 2250,
+                        "alias": "",
+                        "children": [
+                          {
+                            "id": "pg165",
+                            "title": "Снапшот по датчику движения",
+                            "order": 3000,
+                            "alias": "snapshot"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "pggr065",
+                "title": "Шаговые сценарии",
+                "order": 1500,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg286",
+                    "title": "Общее описание",
+                    "order": 2000,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pg287",
+                    "title": "Свойства шаговых сценариев",
+                    "order": 3000,
+                    "alias": "step_scen_link"
+                  }
+                ]
+              },
+              {
+                "id": "pg100",
+                "title": "Расписание",
+                "order": 2000,
+                "alias": "schedrules"
+              }
+            ]
+          },
+          {
+            "id": "pggr003",
+            "title": "Источники данных",
+            "order": 8000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pggr010",
+                "title": "Плагины",
+                "order": 719,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg006",
+                    "title": "О плагинах",
+                    "order": 125,
+                    "alias": "plugins"
+                  },
+                  {
+                    "id": "pg046",
+                    "title": "Установка плагина",
+                    "order": 188,
+                    "alias": "plugin-install"
+                  },
+                  {
+                    "id": "pggr083",
+                    "title": "Список плагинов",
+                    "order": 204,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg198",
+                        "title": "Bacnet/IP",
+                        "order": 3000,
+                        "alias": "plugin-bacnetip"
+                      },
+                      {
+                        "id": "pg047",
+                        "title": "CCTV",
+                        "order": 4000,
+                        "alias": "plugin-cctv"
+                      },
+                      {
+                        "id": "pg151",
+                        "title": "Codesys 2.3",
+                        "order": 5000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg109",
+                        "title": "E-Mail",
+                        "order": 6000,
+                        "alias": "plugin-email"
+                      },
+                      {
+                        "id": "pg048",
+                        "title": "Emulator",
+                        "order": 7000,
+                        "alias": "plugin-emulator"
+                      },
+                      {
+                        "id": "pg227",
+                        "title": "Ethernet/IP",
+                        "order": 8000,
+                        "alias": "plugin-ethernet-ip"
+                      },
+                      {
+                        "id": "pg051",
+                        "title": "HTTP",
+                        "order": 9000,
+                        "alias": "plugin-http"
+                      },
+                      {
+                        "id": "pg114",
+                        "title": "JetHomeD1",
+                        "order": 10000,
+                        "alias": "plugin-jethomed1"
+                      },
+                      {
+                        "id": "pg321",
+                        "title": "KNX IP",
+                        "order": 11000,
+                        "alias": "plugin-knxip"
+                      },
+                      {
+                        "id": "pg409",
+                        "title": "Kerberos",
+                        "order": 11500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg404",
+                        "title": "LDAP client",
+                        "order": 11750,
+                        "alias": "ldapclient"
+                      },
+                      {
+                        "id": "pg123",
+                        "title": "Laurent",
+                        "order": 12000,
+                        "alias": "plugin-laurent"
+                      },
+                      {
+                        "id": "pg316",
+                        "title": "Mitsubishi MC",
+                        "order": 13500,
+                        "alias": "plugin-mitsubishi-mc"
+                      },
+                      {
+                        "id": "pg053",
+                        "title": "MODBUS master (client)",
+                        "order": 14000,
+                        "alias": "plugin-modbus"
+                      },
+                      {
+                        "id": "pg200",
+                        "title": "MODBUS slave (server)",
+                        "order": 15000,
+                        "alias": "plugin-modbusserver"
+                      },
+                      {
+                        "id": "pg250",
+                        "title": "MODBUS multimaster (client)",
+                        "order": 16000,
+                        "alias": "plugin-multimodbus"
+                      },
+                      {
+                        "id": "pg725",
+                        "title": "MODBUS parallelmaster (client)",
+                        "order": 16250,
+                        "alias": "plugin-parallelmodbus"
+                      },
+                      {
+                        "id": "pg562",
+                        "title": "MSSQL client",
+                        "order": 16500,
+                        "alias": "plugin-mssqlclient"
+                      },
+                      {
+                        "id": "pg055",
+                        "title": "MQTT",
+                        "order": 17000,
+                        "alias": "plugin-mqtt"
+                      },
+                      {
+                        "id": "pg204",
+                        "title": "MQTT server",
+                        "order": 18000,
+                        "alias": "plugin-mqttserver"
+                      },
+                      {
+                        "id": "pg464",
+                        "title": "OMRON FINS",
+                        "order": 18500,
+                        "alias": "plugin-omron-fins"
+                      },
+                      {
+                        "id": "pg054",
+                        "title": "OPC UA",
+                        "order": 19000,
+                        "alias": "plugin-opcua"
+                      },
+                      {
+                        "id": "pg288",
+                        "title": "OPC UA server",
+                        "order": 20000,
+                        "alias": "plugin-opcua-server"
+                      },
+                      {
+                        "id": "pg293",
+                        "title": "МЭК 60870-5-104",
+                        "order": 21000,
+                        "alias": "iec60870-5-104"
+                      },
+                      {
+                        "id": "pg726",
+                        "title": "МЭК 60870-5-104multi",
+                        "order": 21500,
+                        "alias": "iec60870-5-104multi"
+                      },
+                      {
+                        "id": "pg733",
+                        "title": "МЭК 60870-5-104server",
+                        "order": 21750,
+                        "alias": "iec60870-5-104server"
+                      },
+                      {
+                        "id": "pg122",
+                        "title": "Ping",
+                        "order": 22000,
+                        "alias": "plugin-ping"
+                      },
+                      {
+                        "id": "pg202",
+                        "title": "PostgreSQL client",
+                        "order": 23000,
+                        "alias": "plugin-postgresqlclient"
+                      },
+                      {
+                        "id": "pg411",
+                        "title": "PCCC Ethernet/IP",
+                        "order": 23500,
+                        "alias": "plugin-pccceip"
+                      },
+                      {
+                        "id": "pg052",
+                        "title": "Siemens S7",
+                        "order": 24000,
+                        "alias": "plugin-siemens-s7"
+                      },
+                      {
+                        "id": "pg730",
+                        "title": "Stimulsoft report",
+                        "order": 25000,
+                        "alias": "plugin-stimulsoft"
+                      },
+                      {
+                        "id": "pg050",
+                        "title": "SNMP",
+                        "order": 26000,
+                        "alias": "plugin-snmp"
+                      },
+                      {
+                        "id": "pg731",
+                        "title": "SMS",
+                        "order": 26500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg108",
+                        "title": "Telegram",
+                        "order": 27000,
+                        "alias": "plugin-telegram"
+                      },
+                      {
+                        "id": "pg119",
+                        "title": "Zigbee",
+                        "order": 29000,
+                        "alias": "plugin-zigbee"
+                      },
+                      {
+                        "id": "pg405",
+                        "title": "Счетчики Меркурий",
+                        "order": 30500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg402",
+                        "title": "Счетчики СЭТ",
+                        "order": 31000,
+                        "alias": ""
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr035",
+                    "title": "Разработка плагинов",
+                    "order": 219,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg140",
+                        "title": "Концепция ",
+                        "order": 500,
+                        "alias": "plugin_concept"
+                      },
+                      {
+                        "id": "pg141",
+                        "title": "Минимальный плагин",
+                        "order": 1000,
+                        "alias": "plugin_min"
+                      },
+                      {
+                        "id": "pg142",
+                        "title": "API плагина",
+                        "order": 2000,
+                        "alias": "plugin_api"
+                      },
+                      {
+                        "id": "pg613",
+                        "title": "API плагина через stdin/stdout",
+                        "order": 2125,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg144",
+                        "title": "Манифест",
+                        "order": 2500,
+                        "alias": "plugin_manifest"
+                      },
+                      {
+                        "id": "pg257",
+                        "title": "Вкладки",
+                        "order": 2875,
+                        "alias": "plugin_tabs"
+                      },
+                      {
+                        "id": "pg143",
+                        "title": "Формы ",
+                        "order": 3250,
+                        "alias": "plugin_forms"
+                      },
+                      {
+                        "id": "pg572",
+                        "title": "Логирование",
+                        "order": 3438,
+                        "alias": "plugin_log"
+                      },
+                      {
+                        "id": "pg265",
+                        "title": "Собственные команды",
+                        "order": 3625,
+                        "alias": "plugin_command"
+                      },
+                      {
+                        "id": "pg266",
+                        "title": "Свойства индикатора плагина",
+                        "order": 3813,
+                        "alias": "plugin_ext_props"
+                      },
+                      {
+                        "id": "pg146",
+                        "title": "Структурирование каналов",
+                        "order": 6000,
+                        "alias": "plugin_advanced"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "pggr027",
+                "title": "Сниппеты",
+                "order": 5000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg083",
+                    "title": "Общее описание",
+                    "order": 500,
+                    "alias": "snippets"
+                  }
+                ]
+              },
+              {
+                "id": "pggr036",
+                "title": "REST API",
+                "order": 6000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg148",
+                    "title": "Общее описание",
+                    "order": 1000,
+                    "alias": "restapi_common"
+                  },
+                  {
+                    "id": "pg290",
+                    "title": "Доступ",
+                    "order": 1500,
+                    "alias": "restapi_access"
+                  },
+                  {
+                    "id": "pg149",
+                    "title": "Маршрут",
+                    "order": 2000,
+                    "alias": "restapihandlers"
+                  },
+                  {
+                    "id": "pg467",
+                    "title": "Обработчик ",
+                    "order": 2500,
+                    "alias": "restapihandler"
+                  },
+                  {
+                    "id": "pggr041",
+                    "title": "Примеры",
+                    "order": 3000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg169",
+                        "title": "Grafana",
+                        "order": 1000,
+                        "alias": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "pggr011",
+            "title": "Аналитика",
+            "order": 9000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg058",
+                "title": "Общее описание",
+                "order": 2000,
+                "alias": ""
+              },
+              {
+                "id": "pg102",
+                "title": "Графики",
+                "order": 3000,
+                "alias": "charts"
+              },
+              {
+                "id": "pg205",
+                "title": "Обработчик для графика",
+                "order": 3500,
+                "alias": "charthandler"
+              },
+              {
+                "id": "pg577",
+                "title": "Обработчик несколько перьев",
+                "order": 3750,
+                "alias": ""
+              },
+              {
+                "id": "pg103",
+                "title": "Таймлайны",
+                "order": 4000,
+                "alias": "timeline_charts"
+              },
+              {
+                "id": "pg104",
+                "title": "Журналы",
+                "order": 5000,
+                "alias": "journals"
+              },
+              {
+                "id": "pg208",
+                "title": "Журналы тревог",
+                "order": 5500,
+                "alias": "alert_journals"
+              },
+              {
+                "id": "pggr043",
+                "title": "Отчеты",
+                "order": 8000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg105",
+                    "title": "Формирование и показ",
+                    "order": 1000,
+                    "alias": "reports"
+                  },
+                  {
+                    "id": "pg219",
+                    "title": "Переменные отчета",
+                    "order": 1500,
+                    "alias": "reportvars"
+                  },
+                  {
+                    "id": "pg220",
+                    "title": "Таблица отчета",
+                    "order": 1750,
+                    "alias": "reporttable"
+                  },
+                  {
+                    "id": "pg211",
+                    "title": "Обработчик для отчета",
+                    "order": 2000,
+                    "alias": "reporthandler"
+                  }
+                ]
+              },
+              {
+                "id": "pggr103",
+                "title": "Отчеты Stimulsoft",
+                "order": 9000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pggr104",
+                    "title": "Подготовка редактора отчетов",
+                    "order": 3000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg469",
+                        "title": "Формирование и показ",
+                        "order": 1000,
+                        "alias": "preparation"
+                      },
+                      {
+                        "id": "pg470",
+                        "title": "Формирование источника данных отчета ",
+                        "order": 2000,
+                        "alias": "datasource"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr105",
+                    "title": "Редактор отчетов Stimulsoft",
+                    "order": 4000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg472",
+                        "title": "Окно редактирования отчета",
+                        "order": 1000,
+                        "alias": "reportdesigner"
+                      },
+                      {
+                        "id": "pggr106",
+                        "title": "Пользовательские переменные отчета",
+                        "order": 3000,
+                        "alias": "",
+                        "children": [
+                          {
+                            "id": "pg473",
+                            "title": "Создание переменных",
+                            "order": 500,
+                            "alias": "createvar"
+                          },
+                          {
+                            "id": "pg475",
+                            "title": "Использование переменной в отчете",
+                            "order": 1500,
+                            "alias": "usevar"
+                          },
+                          {
+                            "id": "pg476",
+                            "title": "Изменение и удаление переменной",
+                            "order": 2500,
+                            "alias": "deletevar"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr110",
+                    "title": "Примеры отчетов",
+                    "order": 5000,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg570",
+                        "title": "Создание отчета",
+                        "order": 500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg478",
+                        "title": "Периодический отчет",
+                        "order": 1000,
+                        "alias": "historicalreport"
+                      },
+                      {
+                        "id": "pg571",
+                        "title": "Отчет со списком",
+                        "order": 2000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg581",
+                        "title": "Отчет с диаграммой",
+                        "order": 3000,
+                        "alias": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "pggr012",
+            "title": "База данных",
+            "order": 11000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg061",
+                "title": "Выбор БД",
+                "order": 2000,
+                "alias": "dbagents"
+              },
+              {
+                "id": "pg117",
+                "title": "SQLite",
+                "order": 2500,
+                "alias": "sqlite"
+              },
+              {
+                "id": "pggr109",
+                "title": "PostgreSQL",
+                "order": 2625,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pggr127",
+                    "title": "Установка СУБД",
+                    "order": 500,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg152",
+                        "title": "Установка PostgreSQL Linux",
+                        "order": 1000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg489",
+                        "title": "Установка PostgreSQL Windows",
+                        "order": 1500,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg575",
+                        "title": "Установка PostgreSQL с помощью Docker",
+                        "order": 3000,
+                        "alias": ""
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pg490",
+                    "title": "Настройка агента PostgreSQL",
+                    "order": 1750,
+                    "alias": ""
+                  },
+                  {
+                    "id": "pggr129",
+                    "title": "Настройки TimescaleDB",
+                    "order": 1797,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg561",
+                        "title": "Настройка архивирования (compression_policy)",
+                        "order": 1000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg589",
+                        "title": "Настройка политики хранения (retention policy)",
+                        "order": 2000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg563",
+                        "title": "Настройка непрерывных агрегатов (continuous aggregates)",
+                        "order": 3000,
+                        "alias": ""
+                      }
+                    ]
+                  },
+                  {
+                    "id": "pggr128",
+                    "title": "Репликация при резервировании",
+                    "order": 1844,
+                    "alias": "",
+                    "children": [
+                      {
+                        "id": "pg477",
+                        "title": "Схемы репликации",
+                        "order": 1000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg488",
+                        "title": "Настройка репликации ",
+                        "order": 2000,
+                        "alias": ""
+                      },
+                      {
+                        "id": "pg487",
+                        "title": "Восстановление режима репликации",
+                        "order": 3000,
+                        "alias": ""
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "pggr042",
+                "title": "Пользовательские таблицы",
+                "order": 4750,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg195",
+                    "title": "Общее описание",
+                    "order": 1000,
+                    "alias": "customtables"
+                  },
+                  {
+                    "id": "pg196",
+                    "title": "Работа с таблицами из скриптов",
+                    "order": 2000,
+                    "alias": "customtablesworking"
+                  },
+                  {
+                    "id": "pg199",
+                    "title": "API",
+                    "order": 2500,
+                    "alias": "customtablesapi"
+                  },
+                  {
+                    "id": "pg201",
+                    "title": "Фильтрация и сортировка данных",
+                    "order": 4000,
+                    "alias": "nedbfilters"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "pggr030",
+            "title": "Ресурсы",
+            "order": 12000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg099",
+                "title": "Изображения",
+                "order": 1500,
+                "alias": "images"
+              },
+              {
+                "id": "pg125",
+                "title": "Звуки",
+                "order": 2000,
+                "alias": "sounds"
+              },
+              {
+                "id": "pg176",
+                "title": "Списки",
+                "order": 3000,
+                "alias": "vislist"
+              },
+              {
+                "id": "pg324",
+                "title": "Сетки",
+                "order": 3500,
+                "alias": "visgrid"
+              },
+              {
+                "id": "pg177",
+                "title": "Таблицы",
+                "order": 4000,
+                "alias": "vistable"
+              },
+              {
+                "id": "pg178",
+                "title": "Деревья",
+                "order": 5000,
+                "alias": "vistree"
+              },
+              {
+                "id": "pg217",
+                "title": "Файлы",
+                "order": 6000,
+                "alias": "anyfiles"
+              },
+              {
+                "id": "pg481",
+                "title": "Скриншоты",
+                "order": 7000,
+                "alias": "screenshots"
+              }
+            ]
+          },
+          {
+            "id": "pggr060",
+            "title": "Рецепты",
+            "order": 13000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg270",
+                "title": "Общее описание",
+                "order": 1000,
+                "alias": "recipes"
+              },
+              {
+                "id": "pg271",
+                "title": "Хранение рецептов в БД",
+                "order": 2000,
+                "alias": ""
+              },
+              {
+                "id": "pg399",
+                "title": "Редактирование формул рецептов",
+                "order": 3000,
+                "alias": ""
+              },
+              {
+                "id": "pg400",
+                "title": "Создание рецепта",
+                "order": 4000,
+                "alias": "recipe_create"
+              }
+            ]
+          },
+          {
+            "id": "pggr013",
+            "title": "Доступ",
+            "order": 14000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg062",
+                "title": "Общее описание",
+                "order": 1000,
+                "alias": "access"
+              },
+              {
+                "id": "pggr028",
+                "title": "Пользователи",
+                "order": 3000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg106",
+                    "title": "Учетные записи",
+                    "order": 1000,
+                    "alias": "user-account"
+                  },
+                  {
+                    "id": "pg110",
+                    "title": "Информирование",
+                    "order": 2000,
+                    "alias": "user-info"
+                  }
+                ]
+              },
+              {
+                "id": "pg107",
+                "title": "Группы пользователей",
+                "order": 4000,
+                "alias": ""
+              },
+              {
+                "id": "pg273",
+                "title": "Текущие подключения",
+                "order": 5000,
+                "alias": ""
+              },
+              {
+                "id": "pg403",
+                "title": "Интеграция с LDAP",
+                "order": 6000,
+                "alias": "access_ldap"
+              }
+            ]
+          },
+          {
+            "id": "pggr090",
+            "title": "Настройка системы",
+            "order": 14500,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg406",
+                "title": "Системные настройки",
+                "order": 500,
+                "alias": "systemsettings"
+              },
+              {
+                "id": "pg173",
+                "title": "Работа с проектами",
+                "order": 1000,
+                "alias": "projects"
+              }
+            ]
+          },
+          {
+            "id": "pggr102",
+            "title": "Резервирование серверов",
+            "order": 14750,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg465",
+                "title": "Механизмы резервирования",
+                "order": 1000,
+                "alias": ""
+              },
+              {
+                "id": "pg466",
+                "title": "Настройка резервирования",
+                "order": 2000,
+                "alias": ""
+              }
+            ]
+          },
+          {
+            "id": "pggr062",
+            "title": "Информационная безопасность",
+            "order": 14875,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg278",
+                "title": "Сводная информация по ИБ",
+                "order": 500,
+                "alias": "isec_common"
+              },
+              {
+                "id": "pg279",
+                "title": "Порты по умолчанию",
+                "order": 750,
+                "alias": ""
+              },
+              {
+                "id": "pg272",
+                "title": "Регистрация событий ИБ",
+                "order": 1750,
+                "alias": ""
+              },
+              {
+                "id": "pg281",
+                "title": "Типовые инциденты",
+                "order": 2750,
+                "alias": ""
+              },
+              {
+                "id": "pg282",
+                "title": "Резервное копирование проекта",
+                "order": 3750,
+                "alias": "project_copy"
+              },
+              {
+                "id": "pg289",
+                "title": "Смена пароля",
+                "order": 4750,
+                "alias": ""
+              },
+              {
+                "id": "pg291",
+                "title": "Аудит ИБ",
+                "order": 5750,
+                "alias": ""
+              },
+              {
+                "id": "pg615",
+                "title": "Высокий уровень информационной безопасности",
+                "order": 7750,
+                "alias": ""
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pggr084",
+        "title": "Интерфейс пользователя",
+        "order": 1270,
+        "alias": "",
+        "children": [
+          {
+            "id": "pg358",
+            "title": "Работа в браузере",
+            "order": 250,
+            "alias": ""
+          },
+          {
+            "id": "pg309",
+            "title": "IntraSCADA Client",
+            "order": 750,
+            "alias": "is_client"
+          }
+        ]
+      },
+      {
+        "id": "pggr113",
+        "title": "Методы API",
+        "order": 1516,
+        "alias": "",
+        "children": [
+          {
+            "id": "pggr115",
+            "title": "Методы устройств",
+            "order": 1250,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg496",
+                "title": "assign",
+                "order": 2000,
+                "alias": "device_method1"
+              },
+              {
+                "id": "pg598",
+                "title": "dbsavingStart",
+                "order": 3000,
+                "alias": "device_method2"
+              },
+              {
+                "id": "pg597",
+                "title": "dbsavingStop",
+                "order": 3500,
+                "alias": ""
+              },
+              { "id": "pg596", "title": "dbwrite", "order": 3625, "alias": "" },
+              {
+                "id": "pg719",
+                "title": "execAckAlert",
+                "order": 3688,
+                "alias": ""
+              },
+              {
+                "id": "pg542",
+                "title": "getAttr",
+                "order": 3750,
+                "alias": "device_method17"
+              },
+              {
+                "id": "pg524",
+                "title": "getPropChangeTs",
+                "order": 3813,
+                "alias": "device_method9"
+              },
+              {
+                "id": "pg518",
+                "title": "getProps",
+                "order": 3844,
+                "alias": "device_method6"
+              },
+              {
+                "id": "pg590",
+                "title": "getPropTitle",
+                "order": 3860,
+                "alias": "device_method26"
+              },
+              {
+                "id": "pg520",
+                "title": "getPropTs",
+                "order": 3875,
+                "alias": "device_method8"
+              },
+              {
+                "id": "pg519",
+                "title": "getPropValue",
+                "order": 3969,
+                "alias": "device_method7"
+              },
+              {
+                "id": "pg528",
+                "title": "getDig",
+                "order": 3973,
+                "alias": "device_method13"
+              },
+              {
+                "id": "pg591",
+                "title": "getLocation",
+                "order": 3975,
+                "alias": ""
+              },
+              {
+                "id": "pg592",
+                "title": "getLocationStr",
+                "order": 4975,
+                "alias": ""
+              },
+              {
+                "id": "pg527",
+                "title": "getMax",
+                "order": 5475,
+                "alias": "device_method12"
+              },
+              {
+                "id": "pg526",
+                "title": "getMin",
+                "order": 6975,
+                "alias": "device_method11"
+              },
+              {
+                "id": "pg525",
+                "title": "getMu",
+                "order": 7975,
+                "alias": "device_method10"
+              },
+              {
+                "id": "pg530",
+                "title": "getRounded",
+                "order": 8975,
+                "alias": "device_method15"
+              },
+              { "id": "pg593", "title": "getTags", "order": 9975, "alias": "" },
+              {
+                "id": "pg594",
+                "title": "getTagArray",
+                "order": 10975,
+                "alias": ""
+              },
+              {
+                "id": "pg548",
+                "title": "hasChannel",
+                "order": 11975,
+                "alias": "device_method23"
+              },
+              {
+                "id": "pg516",
+                "title": "hasCommand",
+                "order": 12475,
+                "alias": "device_method4"
+              },
+              {
+                "id": "pg497",
+                "title": "hasProp",
+                "order": 12725,
+                "alias": "device_method3"
+              },
+              {
+                "id": "pg546",
+                "title": "hasReadChannel",
+                "order": 12975,
+                "alias": "device_method21"
+              },
+              {
+                "id": "pg547",
+                "title": "hasWriteChannel",
+                "order": 13975,
+                "alias": "device_method22"
+              },
+              {
+                "id": "pg517",
+                "title": "isParam",
+                "order": 17975,
+                "alias": "device_method5"
+              },
+              {
+                "id": "pg529",
+                "title": "inRange",
+                "order": 18975,
+                "alias": "device_method14"
+              },
+              {
+                "id": "pg550",
+                "title": "log",
+                "order": 19975,
+                "alias": "device_method25"
+              },
+              {
+                "id": "pg595",
+                "title": "mainlog",
+                "order": 20975,
+                "alias": ""
+              },
+              {
+                "id": "pg544",
+                "title": "restartTimer",
+                "order": 21975,
+                "alias": "device_method19"
+              },
+              {
+                "id": "pg541",
+                "title": "setAttr",
+                "order": 22475,
+                "alias": "device_method16"
+              },
+              {
+                "id": "pg720",
+                "title": "setBlkAlert",
+                "order": 22725,
+                "alias": ""
+              },
+              {
+                "id": "pg495",
+                "title": "setValue",
+                "order": 22975,
+                "alias": "device_method1"
+              },
+              {
+                "id": "pg543",
+                "title": "startTimer",
+                "order": 24975,
+                "alias": "device_method18"
+              },
+              {
+                "id": "pg545",
+                "title": "stopTimer",
+                "order": 25975,
+                "alias": "device_method20"
+              },
+              {
+                "id": "pg549",
+                "title": "writeChannel",
+                "order": 26975,
+                "alias": "device_method24"
+              }
+            ]
+          },
+          {
+            "id": "pggr114",
+            "title": "Методы скриптов визуализации",
+            "order": 2000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg620",
+                "title": "ackAllAlerts",
+                "order": 4250,
+                "alias": ""
+              },
+              {
+                "id": "pg676",
+                "title": "addChartItems",
+                "order": 6375,
+                "alias": ""
+              },
+              {
+                "id": "pg677",
+                "title": "changeChartItems",
+                "order": 7438,
+                "alias": ""
+              },
+              {
+                "id": "pg667",
+                "title": "copyChannelsFolder",
+                "order": 7704,
+                "alias": ""
+              },
+              {
+                "id": "pg624",
+                "title": "copyUserFile, renameUserFile",
+                "order": 7837,
+                "alias": ""
+              },
+              {
+                "id": "pg665",
+                "title": "createChannelsFolder",
+                "order": 7969,
+                "alias": ""
+              },
+              {
+                "id": "pg673",
+                "title": "createChart",
+                "order": 8500,
+                "alias": ""
+              },
+              {
+                "id": "pg645",
+                "title": "createDevice",
+                "order": 8625,
+                "alias": ""
+              },
+              {
+                "id": "pg718",
+                "title": "createDevicesFolder",
+                "order": 8657,
+                "alias": ""
+              },
+              {
+                "id": "pg661",
+                "title": "createChannel",
+                "order": 8673,
+                "alias": ""
+              },
+              {
+                "id": "pg656",
+                "title": "createPluginUnit",
+                "order": 8681,
+                "alias": ""
+              },
+              {
+                "id": "pg658",
+                "title": "deletePluginUnit",
+                "order": 8704,
+                "alias": ""
+              },
+              {
+                "id": "pg678",
+                "title": "deleteChartItems",
+                "order": 8719,
+                "alias": ""
+              },
+              {
+                "id": "pg639",
+                "title": "deleteFormula",
+                "order": 8723,
+                "alias": ""
+              },
+              {
+                "id": "pg629",
+                "title": "findRecord",
+                "order": 8727,
+                "alias": ""
+              },
+              {
+                "id": "pg621",
+                "title": "getAlertObj",
+                "order": 9227,
+                "alias": ""
+              },
+              {
+                "id": "pg660",
+                "title": "getChannel",
+                "order": 9477,
+                "alias": ""
+              },
+              {
+                "id": "pg659",
+                "title": "getChannels",
+                "order": 9540,
+                "alias": ""
+              },
+              {
+                "id": "pg668",
+                "title": "getChanFolderId",
+                "order": 9602,
+                "alias": ""
+              },
+              {
+                "id": "pg672",
+                "title": "getChart",
+                "order": 9727,
+                "alias": ""
+              },
+              {
+                "id": "pg644",
+                "title": "getDateTimeStr",
+                "order": 9977,
+                "alias": ""
+              },
+              {
+                "id": "pg643",
+                "title": "getDbTargets",
+                "order": 10227,
+                "alias": ""
+              },
+              {
+                "id": "pg494",
+                "title": "getDevice",
+                "order": 10727,
+                "alias": "core_method3"
+              },
+              {
+                "id": "pg599",
+                "title": "getDevices",
+                "order": 11727,
+                "alias": ""
+              },
+              {
+                "id": "pg648",
+                "title": "getDeviceChannels",
+                "order": 11977,
+                "alias": ""
+              },
+              {
+                "id": "pg635",
+                "title": "getFormula",
+                "order": 12040,
+                "alias": ""
+              },
+              {
+                "id": "pg641",
+                "title": "getFormulaGridData",
+                "order": 12071,
+                "alias": ""
+              },
+              { "id": "pg642", "title": "getIds", "order": 12087, "alias": "" },
+              {
+                "id": "pg638",
+                "title": "getJrowsFromGridData",
+                "order": 12102,
+                "alias": ""
+              },
+              {
+                "id": "pg626",
+                "title": "getListFromTree",
+                "order": 12227,
+                "alias": ""
+              },
+              {
+                "id": "pg652",
+                "title": "getPlugin",
+                "order": 12290,
+                "alias": ""
+              },
+              {
+                "id": "pg651",
+                "title": "getPlugins",
+                "order": 12352,
+                "alias": ""
+              },
+              {
+                "id": "pg653",
+                "title": "getPluginUnit",
+                "order": 12384,
+                "alias": ""
+              },
+              {
+                "id": "pg640",
+                "title": "getRecipeSchema",
+                "order": 12415,
+                "alias": ""
+              },
+              {
+                "id": "pg628",
+                "title": "getRecords",
+                "order": 12477,
+                "alias": ""
+              },
+              {
+                "id": "pg619",
+                "title": "getReport",
+                "order": 12602,
+                "alias": ""
+              },
+              {
+                "id": "pg633",
+                "title": "getSQLRecords",
+                "order": 12665,
+                "alias": ""
+              },
+              {
+                "id": "pg625",
+                "title": "getTree",
+                "order": 13227,
+                "alias": ""
+              },
+              {
+                "id": "pg600",
+                "title": "getTypes",
+                "order": 13477,
+                "alias": ""
+              },
+              {
+                "id": "pg622",
+                "title": "getUserFiles",
+                "order": 13727,
+                "alias": ""
+              },
+              {
+                "id": "pg492",
+                "title": "gotoLayout",
+                "order": 15227,
+                "alias": "core_method1"
+              },
+              {
+                "id": "pg636",
+                "title": "insertFormula",
+                "order": 15727,
+                "alias": ""
+              },
+              {
+                "id": "pg630",
+                "title": "insertRecords",
+                "order": 15977,
+                "alias": ""
+              },
+              { "id": "pg607", "title": "info", "order": 16227, "alias": "" },
+              {
+                "id": "pg663",
+                "title": "linkDevicePropToChannel",
+                "order": 16477,
+                "alias": ""
+              },
+              {
+                "id": "pg669",
+                "title": "linkDeviceToChannels",
+                "order": 16602,
+                "alias": ""
+              },
+              {
+                "id": "pg602",
+                "title": "mainlog",
+                "order": 16727,
+                "alias": ""
+              },
+              {
+                "id": "pg604",
+                "title": "playSound",
+                "order": 17727,
+                "alias": ""
+              },
+              {
+                "id": "pg617",
+                "title": "pluginCommand",
+                "order": 19227,
+                "alias": ""
+              },
+              {
+                "id": "pg664",
+                "title": "removeChannel",
+                "order": 19415,
+                "alias": ""
+              },
+              {
+                "id": "pg671",
+                "title": "removeChannelsFolder",
+                "order": 19602,
+                "alias": ""
+              },
+              {
+                "id": "pg675",
+                "title": "removeChart",
+                "order": 19977,
+                "alias": ""
+              },
+              {
+                "id": "pg647",
+                "title": "removeDevice",
+                "order": 20165,
+                "alias": ""
+              },
+              {
+                "id": "pg650",
+                "title": "removeDeviceAndChannels",
+                "order": 20259,
+                "alias": ""
+              },
+              {
+                "id": "pg632",
+                "title": "removeRecords",
+                "order": 20352,
+                "alias": ""
+              },
+              {
+                "id": "pg623",
+                "title": "removeUserFiles",
+                "order": 20727,
+                "alias": ""
+              },
+              {
+                "id": "pg605",
+                "title": "repeatSound",
+                "order": 23727,
+                "alias": ""
+              },
+              {
+                "id": "pg611",
+                "title": "resumeScene",
+                "order": 24477,
+                "alias": ""
+              },
+              {
+                "id": "pg603",
+                "title": "showDialog",
+                "order": 25040,
+                "alias": ""
+              },
+              {
+                "id": "pg612",
+                "title": "sleep, sleepSec",
+                "order": 25602,
+                "alias": ""
+              },
+              { "id": "pg618", "title": "snap", "order": 25626, "alias": "" },
+              {
+                "id": "pg654",
+                "title": "startPluginUnit",
+                "order": 25649,
+                "alias": ""
+              },
+              {
+                "id": "pg655",
+                "title": "stopPluginUnit",
+                "order": 25673,
+                "alias": ""
+              },
+              {
+                "id": "pg608",
+                "title": "startScene",
+                "order": 25696,
+                "alias": ""
+              },
+              {
+                "id": "pg609",
+                "title": "stopScene",
+                "order": 25743,
+                "alias": ""
+              },
+              {
+                "id": "pg606",
+                "title": "stopSound",
+                "order": 25790,
+                "alias": ""
+              },
+              {
+                "id": "pg662",
+                "title": "updateChannel",
+                "order": 25846,
+                "alias": ""
+              },
+              {
+                "id": "pg670",
+                "title": "updateChannelsFolder",
+                "order": 25902,
+                "alias": ""
+              },
+              {
+                "id": "pg674",
+                "title": "updateChart",
+                "order": 26069,
+                "alias": ""
+              },
+              {
+                "id": "pg646",
+                "title": "updateDevice",
+                "order": 26236,
+                "alias": ""
+              },
+              {
+                "id": "pg637",
+                "title": "updateFormula",
+                "order": 26681,
+                "alias": ""
+              },
+              {
+                "id": "pg493",
+                "title": "updateLocals",
+                "order": 26727,
+                "alias": "core_method2"
+              },
+              {
+                "id": "pg631",
+                "title": "updateRecord, updateRecords",
+                "order": 41727,
+                "alias": ""
+              },
+              {
+                "id": "pg657",
+                "title": "updatePluginUnit",
+                "order": 67727,
+                "alias": ""
+              },
+              {
+                "id": "pg634",
+                "title": "writeFormulaToPlugin",
+                "order": 74727,
+                "alias": ""
+              }
+            ]
+          },
+          {
+            "id": "pggr117",
+            "title": "Методы сценариев",
+            "order": 5000,
+            "alias": "",
+            "children": [
+              {
+                "id": "pg685",
+                "title": "addListener",
+                "order": 125,
+                "alias": ""
+              },
+              { "id": "pg679", "title": "doAll", "order": 250, "alias": "" },
+              { "id": "pg702", "title": "dbread", "order": 313, "alias": "" },
+              { "id": "pg695", "title": "decode", "order": 375, "alias": "" },
+              { "id": "pg696", "title": "encode", "order": 438, "alias": "" },
+              { "id": "pg711", "title": "execOS", "order": 500, "alias": "" },
+              { "id": "pg715", "title": "exit", "order": 750, "alias": "" },
+              {
+                "id": "pg698",
+                "title": "findOneRecord",
+                "order": 875,
+                "alias": ""
+              },
+              {
+                "id": "pg585",
+                "title": "getDevice",
+                "order": 1000,
+                "alias": ""
+              },
+              {
+                "id": "pg716",
+                "title": "getDateTimeStr",
+                "order": 1250,
+                "alias": ""
+              },
+              {
+                "id": "pg712",
+                "title": "getDeviceChannels",
+                "order": 1500,
+                "alias": ""
+              },
+              {
+                "id": "pg680",
+                "title": "getDevices",
+                "order": 3000,
+                "alias": ""
+              },
+              {
+                "id": "pg694",
+                "title": "getProjectPath",
+                "order": 4500,
+                "alias": ""
+              },
+              {
+                "id": "pg697",
+                "title": "getRecords",
+                "order": 5250,
+                "alias": ""
+              },
+              {
+                "id": "pg713",
+                "title": "getReport",
+                "order": 5438,
+                "alias": ""
+              },
+              {
+                "id": "pg710",
+                "title": "getSysTime",
+                "order": 5532,
+                "alias": ""
+              },
+              {
+                "id": "pg688",
+                "title": "httpGet, httpsGet",
+                "order": 5579,
+                "alias": ""
+              },
+              {
+                "id": "pg689",
+                "title": "httpPost, httpsPost",
+                "order": 5602,
+                "alias": ""
+              },
+              { "id": "pg690", "title": "info", "order": 5608, "alias": "" },
+              {
+                "id": "pg699",
+                "title": "insertRecords",
+                "order": 5614,
+                "alias": ""
+              },
+              { "id": "pg708", "title": "log", "order": 5620, "alias": "" },
+              { "id": "pg709", "title": "mainlog", "order": 5623, "alias": "" },
+              {
+                "id": "pg705",
+                "title": "playSound",
+                "order": 6123,
+                "alias": ""
+              },
+              {
+                "id": "pg687",
+                "title": "pluginCommand",
+                "order": 6623,
+                "alias": ""
+              },
+              {
+                "id": "pg692",
+                "title": "readFile",
+                "order": 6873,
+                "alias": ""
+              },
+              {
+                "id": "pg686",
+                "title": "removeListener",
+                "order": 7123,
+                "alias": ""
+              },
+              {
+                "id": "pg701",
+                "title": "removeRecords",
+                "order": 7373,
+                "alias": ""
+              },
+              {
+                "id": "pg706",
+                "title": "repeatSound",
+                "order": 7623,
+                "alias": ""
+              },
+              {
+                "id": "pg714",
+                "title": "runScene",
+                "order": 8123,
+                "alias": ""
+              },
+              {
+                "id": "pg703",
+                "title": "showDialog",
+                "order": 8373,
+                "alias": ""
+              },
+              { "id": "pg691", "title": "snap", "order": 8498, "alias": "" },
+              {
+                "id": "pg683",
+                "title": "startTimer, restartTimer",
+                "order": 8623,
+                "alias": ""
+              },
+              {
+                "id": "pg704",
+                "title": "startVisScript",
+                "order": 8873,
+                "alias": ""
+              },
+              {
+                "id": "pg707",
+                "title": "stopSound",
+                "order": 9123,
+                "alias": ""
+              },
+              {
+                "id": "pg684",
+                "title": "stopTimer",
+                "order": 9623,
+                "alias": ""
+              },
+              {
+                "id": "pg700",
+                "title": "updateRecords",
+                "order": 12123,
+                "alias": ""
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pggr049",
+        "title": "Полезная информация",
+        "order": 17500,
+        "alias": "",
+        "children": [
+          {
+            "id": "pg348",
+            "title": "Установка ОС Ubuntu",
+            "order": 125,
+            "alias": "ubuntusetup"
+          },
+          {
+            "id": "pg283",
+            "title": "Горячие клавиши",
+            "order": 250,
+            "alias": "hotkeys"
+          },
+          {
+            "id": "pg280",
+            "title": "Генерация самоподписных сертификатов",
+            "order": 500,
+            "alias": "ssl_key"
+          },
+          {
+            "id": "pg221",
+            "title": "Список цветов",
+            "order": 1000,
+            "alias": "rgbcolors"
+          },
+          {
+            "id": "pg407",
+            "title": "Настройка Active Directory",
+            "order": 1500,
+            "alias": ""
+          },
+          {
+            "id": "pg408",
+            "title": "Настройка рабочей станции для работы с LDAP в РЕД ОС",
+            "order": 1750,
+            "alias": ""
+          },
+          {
+            "id": "pggr094",
+            "title": "JavaScript",
+            "order": 2500,
+            "alias": "",
+            "children": [
+              {
+                "id": "pggr078",
+                "title": "Основы JavaScript",
+                "order": 1000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg338",
+                    "title": "Введение",
+                    "order": 1000,
+                    "alias": "js_intro"
+                  },
+                  {
+                    "id": "pg339",
+                    "title": "Переменные",
+                    "order": 2000,
+                    "alias": "js_variables"
+                  },
+                  {
+                    "id": "pg340",
+                    "title": "Типы данных",
+                    "order": 3000,
+                    "alias": "js_dataTypes"
+                  },
+                  {
+                    "id": "pg341",
+                    "title": "Преобразование типов",
+                    "order": 4000,
+                    "alias": "js_typesChange"
+                  },
+                  {
+                    "id": "pg342",
+                    "title": "Базовые математические операторы",
+                    "order": 5000,
+                    "alias": "js_math"
+                  },
+                  {
+                    "id": "pg578",
+                    "title": "Побитовые операторы",
+                    "order": 5500,
+                    "alias": "js_bits"
+                  },
+                  {
+                    "id": "pg343",
+                    "title": "Операторы сравнения",
+                    "order": 6000,
+                    "alias": "js_comprasion"
+                  },
+                  {
+                    "id": "pg344",
+                    "title": "Условная инструкция if, оператор \"?\"",
+                    "order": 7000,
+                    "alias": "js_if"
+                  },
+                  {
+                    "id": "pg345",
+                    "title": "Логические операторы",
+                    "order": 8000,
+                    "alias": "js_LogicOperators"
+                  },
+                  {
+                    "id": "pg346",
+                    "title": "Циклы while и for",
+                    "order": 9000,
+                    "alias": "js_whileFor"
+                  },
+                  {
+                    "id": "pg347",
+                    "title": "Конструкция switch",
+                    "order": 10000,
+                    "alias": "js_switch"
+                  },
+                  {
+                    "id": "pg385",
+                    "title": "Функции",
+                    "order": 11000,
+                    "alias": "js_functions"
+                  },
+                  {
+                    "id": "pg386",
+                    "title": "Стрелочные функции",
+                    "order": 12000,
+                    "alias": "js_arrowFunctions"
+                  }
+                ]
+              },
+              {
+                "id": "pggr089",
+                "title": "Объекты в JavaScript",
+                "order": 2000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg387",
+                    "title": "Объекты: основы",
+                    "order": 1000,
+                    "alias": "js_Objects"
+                  },
+                  {
+                    "id": "pg388",
+                    "title": "Методы объектов",
+                    "order": 2000,
+                    "alias": "js_metodsOfObjects"
+                  }
+                ]
+              },
+              {
+                "id": "pggr093",
+                "title": "Типы данных в JavaScript",
+                "order": 3000,
+                "alias": "",
+                "children": [
+                  {
+                    "id": "pg391",
+                    "title": "Числа",
+                    "order": 1000,
+                    "alias": "js_Numbers"
+                  },
+                  {
+                    "id": "pg728",
+                    "title": "Очень большие числа",
+                    "order": 1500,
+                    "alias": "js_bigint"
+                  },
+                  {
+                    "id": "pg392",
+                    "title": "Строки",
+                    "order": 2000,
+                    "alias": "js_Strings"
+                  },
+                  {
+                    "id": "pg393",
+                    "title": "Массивы",
+                    "order": 3000,
+                    "alias": "js_Arrays"
+                  },
+                  {
+                    "id": "pg394",
+                    "title": "Методы массивов",
+                    "order": 4000,
+                    "alias": "js_ArraysMetods"
+                  },
+                  {
+                    "id": "pg395",
+                    "title": "Object.keys, values, entries",
+                    "order": 5000,
+                    "alias": "js_ObjectKeys"
+                  },
+                  {
+                    "id": "pg396",
+                    "title": "Дата и время",
+                    "order": 6000,
+                    "alias": "js_Date"
+                  },
+                  {
+                    "id": "pg397",
+                    "title": "JSON",
+                    "order": 7000,
+                    "alias": "js_JSON"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pg580",
+        "title": "Руководство пользователя в формате PDF",
+        "order": 17532,
+        "alias": ""
+      }
+    ],
+    "order": 1
+  }
+]

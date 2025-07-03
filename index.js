@@ -10,7 +10,7 @@ const modbus = require("./app");
     const opt = getOptFromArgs();
     const pluginapi = opt && opt.pluginapi ? opt.pluginapi : 'ih-plugin-api';
     plugin = require(pluginapi+'/index.js')();
-    plugin.log("Modbus Master plugin has started.");
+    plugin.log("IEC 60870-5-104 server plugin has started.");
     plugin.params = await plugin.params.get();
     plugin.log('Received params '+ util.inspect(plugin.params));
      // Получить каналы для публикации
