@@ -8,7 +8,8 @@ module.exports = function (plugin) {
   let curData = {};
   let curCmd = {};
   let curDataArr = [];
-  let clients = {};
+  let clients = {}; // { clientId: { activated, asdu } }
+  let ipAsduToClientId = {}; // { ipAsdu: clientId }
   let periodicTasks = {};
   let filter = filterExtraChannels();
   subExtraChannels(filter);
@@ -17,13 +18,16 @@ module.exports = function (plugin) {
   const clientPointers = {};
   const sboSelections = {};
   const SBO_TIMEOUT = 30000;
-  const MAX_BATCH_SIZE = 10; // Максимальный размер пакета для отправки
+  const MAX_BATCH_SIZE = 10;
 
   const validCmdExec = ['direct', 'select'];
   const cmdExec = validCmdExec.includes(params.cmdExec) ? params.cmdExec : 'direct';
   if (!validCmdExec.includes(params.cmdExec)) {
-    plugin.log(`Invalid cmdExec value: ${params.cmdExec}, defaulting to 'direct'`, 2);
+    plugin.log(`Недопустимое значение cmdExec: ${params.cmdExec}, используется по умолчанию 'direct'`, 2);
   }
+
+  const useBuffer = params.useBuffer;
+  plugin.log(`Режим буфера: ${useBuffer ? 'включён' : 'выключен'}`, 2);
 
   if (cmdExec === 'direct') {
     Object.keys(sboSelections).forEach(clientId => delete sboSelections[clientId]);
@@ -32,30 +36,27 @@ module.exports = function (plugin) {
   const execDefault = Number(params.execdefault) || 2000;
   const execShort = Number(params.execshort) || 500;
   const execLong = Number(params.execlong) || 5000;
-  plugin.log(`Execution times: QOC=0=${execDefault}ms, QOC=1=${execShort}ms, QOC=2=${execLong}ms, QOC=3=persistent`, 2);
+  plugin.log(`Времена выполнения: QOC=0=${execDefault}ms, QOC=1=${execShort}ms, QOC=2=${execLong}ms, QOC=3=persistent`, 2);
 
-  // функция chunkArray с группировкой по asduAddress и typeId
   function chunkArray(array, size) {
-  // Группировка объектов по asduAddress и typeId
-  const grouped = {};
-  array.forEach(item => {
-    const key = `${item.asduAddress}_${item.typeId}`;
-    if (!grouped[key]) {
-      grouped[key] = [];
-    }
-    grouped[key].push(item);
-  });
+    const grouped = {};
+    array.forEach(item => {
+      const key = `${item.asduAddress}_${item.typeId}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+      grouped[key].push(item);
+    });
 
-  // Разбиение каждой группы на пакеты размером не более size
-  const result = [];
-  Object.values(grouped).forEach(group => {
-    for (let i = 0; i < group.length; i += size) {
-      result.push(group.slice(i, i + size));
-    }
-  });
+    const result = [];
+    Object.values(grouped).forEach(group => {
+      for (let i = 0; i < group.length; i += size) {
+        result.push(group.slice(i, i + size));
+      }
+    });
 
-  return result;
-}
+    return result;
+  }
 
   function subExtraChannels(filter) {
     plugin.onSub('devices', filter, data => {
@@ -81,7 +82,9 @@ module.exports = function (plugin) {
             };
             curData[curitem.did + '.' + curitem.prop] = event;
             curDataArr.push(event);
-            addToEventBuffer(event);
+            if (useBuffer) {
+              addToEventBuffer(event);
+            }
           } else if (curitem.extype === 'set') {
             let value;
             if (curitem.ioObjCtype == 45 || curitem.ioObjCtype == 58) {
@@ -104,23 +107,29 @@ module.exports = function (plugin) {
       });
 
       const status = server.getStatus();
-      if (status.connectedClients.length > 0) {
+      if (status.connectedClients.length > 0 ) {
         status.connectedClients.forEach(clientId => {
-          if (clients[clientId]?.activated === 1) {
+          const client = clients[clientId];
+          if (client?.activated === 1) {
             try {
-              // Разбиваем curDataArr на части по MAX_BATCH_SIZE
               const batches = chunkArray(curDataArr, MAX_BATCH_SIZE);
-              batches.forEach(batch => {
+              for (let i = 0; i < batches.length; i++) {
+                const batch = batches[i];
                 const success = server.sendCommands(clientId, batch);
-                if (success) {
-                  plugin.log(`Sent ${batch.length} events to client ${clientId}: ${util.inspect(batch)}`, 2);
-                } else {
-                  plugin.log(`Failed to send ${batch.length} events to client ${clientId}`, 2);
-                }
-              });
-              updateClientPointer(clientId, eventBuffer.length);
+                sleep(50).then(() => {
+                  if (success) {
+                    plugin.log(`Отправлено ${batch.length} событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
+                  } else {
+                    plugin.log(`Не удалось отправить ${batch.length} событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+                  }
+                });
+              }
+              if (client.asdu) {
+                const ipAsdu = `${clientId.split(':')[0]}:${client.asdu}`;
+                updateClientPointer(ipAsdu, eventBuffer.length);
+              }
             } catch (e) {
-              plugin.log(`Command ERROR for client ${clientId}: ${util.inspect(e)}`, 2);
+              plugin.log(`Ошибка команды для клиента ${clientId}: ${util.inspect(e)}`, 2);
             }
           }
         });
@@ -139,74 +148,119 @@ module.exports = function (plugin) {
   });
 
   function addToEventBuffer(event) {
-    const maxBufferSize = Number(params.maxBufferSize) || 1000;
+    const maxBufferSize = Number(params.maxBufferSize) || 1000; // Размер буфера в количестве сообщений
     if (eventBuffer.length >= maxBufferSize) {
       eventBuffer.shift();
-      for (const clientId in clientPointers) {
-        if (clientPointers[clientId] > 0) {
-          clientPointers[clientId]--;
+      for (const ipAsdu in clientPointers) {
+        if (clientPointers[ipAsdu] > 0) {
+          clientPointers[ipAsdu]--;
         }
       }
-      plugin.log('Event buffer overflow, oldest event removed', 2);
+      plugin.log(`Переполнение буфера событий, удалено самое старое сообщение (максимум ${maxBufferSize} сообщений)`, 2);
     }
     eventBuffer.push(event);
   }
 
-  function updateClientPointer(clientId, position) {
-    clientPointers[clientId] = position;
+  function updateClientPointer(ipAsdu, position) {
+    clientPointers[ipAsdu] = position;
   }
 
-  function sendBufferedEvents(clientId) {
-    const pointer = clientPointers[clientId] || 0;
+  async function sendBufferedEvents(clientId, startFromPointer = null) {
+    const client = clients[clientId];
+    if (!client) {
+      plugin.log(`Клиент ${clientId} не найден, невозможно отправить буферизованные события`, 2);
+      return;
+    }
+
+    const ip = clientId.split(':')[0];
+    const ipAsdu = client.asdu ? `${ip}:${client.asdu}` : `${clientId}:unknown`;
+    const pointer = startFromPointer !== null ? startFromPointer : (clientPointers[ipAsdu] || 0);
+
     const eventsToSend = eventBuffer.slice(pointer).map(event => ({
       ...event,
       cot: 48
     }));
+
     if (eventsToSend.length > 0) {
       try {
-        // Разбиваем eventsToSend на части по MAX_BATCH_SIZE
         const batches = chunkArray(eventsToSend, MAX_BATCH_SIZE);
-        batches.forEach(batch => {
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
+          await sleep(50);
           if (success) {
-            plugin.log(`Sent ${batch.length} buffered events to client ${clientId}: ${util.inspect(batch)}`, 2);
+            plugin.log(`Отправлено ${batch.length} буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
           } else {
-            plugin.log(`Failed to send ${batch.length} buffered events to client ${clientId}`, 2);
+            plugin.log(`Не удалось отправить ${batch.length} буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
           }
-        });
-        updateClientPointer(clientId, eventBuffer.length);
+        }
+        updateClientPointer(ipAsdu, eventBuffer.length);
       } catch (e) {
-        plugin.log(`Error sending buffered events to client ${clientId}: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка отправки буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(e)}`, 2);
       }
     } else {
-      plugin.log(`No buffered events to send to client ${clientId}`, 2);
+      plugin.log(`Нет буферизованных событий для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
     }
   }
 
   async function sendCurrentValues(clientId) {
+    const client = clients[clientId];
+    if (!client) {
+      plugin.log(`Клиент ${clientId} не найден, невозможно отправить текущие значения`, 2);
+      return;
+    }
+
     const currentValues = Object.values(curData).map(item => ({
       ...item,
       cot: 20
     }));
+
     if (currentValues.length > 0) {
       try {
-        // Разбиваем currentValues на части по MAX_BATCH_SIZE
         const batches = chunkArray(currentValues, MAX_BATCH_SIZE);
-        for (let i=0; i<batches.length; i++) {
+        for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
-          await sleep(100);
+          await sleep(50);
           if (success) {
-            plugin.log(`Sent ${batch.length} current values to client ${clientId}: ${util.inspect(batch)}`, 2);
+            plugin.log(`Отправлено ${batch.length} текущих значений клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
           } else {
-            plugin.log(`Failed to send ${batch.length} current values to client ${clientId}`, 2);
+            plugin.log(`Не удалось отправить ${batch.length} текущих значений клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
           }
         }
       } catch (e) {
-        plugin.log(`Error sending current values to client ${clientId}: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка отправки текущих значений клиенту ${clientId}: ${util.inspect(e)}`, 2);
       }
     } else {
-      plugin.log(`No current values to send to client ${clientId}`, 2);
+      plugin.log(`Нет текущих значений для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+    }
+  }
+
+  async function sendCurrentChanges(clientId) {
+    const client = clients[clientId];
+    if (!client) {
+      plugin.log(`Клиент ${clientId} не найден, невозможно отправить текущие изменения`, 2);
+      return;
+    }
+
+    if (curDataArr.length > 0) {
+      try {
+        const batches = chunkArray(curDataArr, MAX_BATCH_SIZE);
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
+          const success = server.sendCommands(clientId, batch);
+          await sleep(50);
+          if (success) {
+            plugin.log(`Отправлено ${batch.length} текущих изменений клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
+          } else {
+            plugin.log(`Не удалось отправить ${batch.length} текущих изменений клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+          }
+        }
+      } catch (e) {
+        plugin.log(`Ошибка отправки текущих изменений клиенту ${clientId}: ${util.inspect(e)}`, 2);
+      }
+    } else {
+      plugin.log(`Нет текущих изменений для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
     }
   }
 
@@ -220,7 +274,7 @@ module.exports = function (plugin) {
       if (item && item.extype === 'pub') {
         const data = curData[didProp];
         if (data) {
-          dataToSend.push({ ...data, cot: 20 });
+          dataToSend.push({ ...data, cot: 1 });
         }
       }
     });
@@ -229,72 +283,84 @@ module.exports = function (plugin) {
       const status = server.getStatus();
       if (status.connectedClients.length > 0) {
         status.connectedClients.forEach(clientId => {
-          if (clients[clientId]?.activated === 1) {
+          const client = clients[clientId];
+          if (client?.activated === 1) {
             try {
-              // Разбиваем dataToSend на части по MAX_BATCH_SIZE
               const batches = chunkArray(dataToSend, MAX_BATCH_SIZE);
-              batches.forEach(batch => {
+              for (let i = 0; i < batches.length; i++) {
+                const batch = batches[i];
                 const success = server.sendCommands(clientId, batch);
-                if (success) {
-                  plugin.log(`Sent ${batch.length} periodic data items for interval ${intervalMs / 60000} minutes to client ${clientId}: ${util.inspect(batch)}`, 2);
-                } else {
-                  plugin.log(`Failed to send ${batch.length} periodic data items for interval ${intervalMs / 60000} minutes to client ${clientId}`, 2);
-                }
-              });
+                sleep(50).then(() => {
+                  if (success) {
+                    plugin.log(`Отправлено ${batch.length} периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
+                  } else {
+                    plugin.log(`Не удалось отправить ${batch.length} периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+                  }
+                });
+              }
             } catch (e) {
-              plugin.log(`Error sending periodic data for interval ${intervalMs / 60000} minutes to client ${clientId}: ${util.inspect(e)}`, 2);
+              plugin.log(`Ошибка отправки периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId}: ${util.inspect(e)}`, 2);
             }
           }
         });
       } else {
-        plugin.log(`No clients connected to send periodic data for interval ${intervalMs / 60000} minutes`, 2);
+        plugin.log(`Нет подключённых клиентов для отправки периодических данных за интервал ${intervalMs / 60000} минут`, 2);
       }
     }
   }
 
   function sendCounterValues(clientId, qcc) {
+    const client = clients[clientId];
+    if (!client) {
+      plugin.log(`Клиент ${clientId} не найден, невозможно отправить значения счётчиков`, 2);
+      return;
+    }
+
     const counterValues = Object.values(curData)
       .filter(item => item.typeId === 15)
       .map(item => ({
         ...item,
         cot: qcc >= 2 && qcc <= 5 ? 37 : 20
       }));
+
     if (counterValues.length > 0) {
       try {
         server.sendCommands(clientId, [{
           typeId: 101,
           ioa: 0,
           value: qcc,
-          asduAddress: counterValues[0].asduAddress,
+          asduAddress: client.asdu || 0,
           cot: 7
         }]);
-        // Разбиваем counterValues на части по MAX_BATCH_SIZE
         const batches = chunkArray(counterValues, MAX_BATCH_SIZE);
-        batches.forEach(batch => {
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
-          if (success) {
-            plugin.log(`Sent ${batch.length} counter values to client ${clientId}: ${util.inspect(batch)}`, 2);
-          } else {
-            plugin.log(`Failed to send ${batch.length} counter values to client ${clientId}`, 2);
-          }
-        });
+          sleep(50).then(() => {
+            if (success) {
+              plugin.log(`Отправлено ${batch.length} значений счётчиков клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
+            } else {
+              plugin.log(`Не удалось отправить ${batch.length} значений счётчиков клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+            }
+          });
+        }
       } catch (e) {
-        plugin.log(`Error sending counter values to client ${clientId}: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка отправки значений счётчиков клиенту ${clientId}: ${util.inspect(e)}`, 2);
         server.sendCommands(clientId, [{
           typeId: 101,
           ioa: 0,
           value: qcc,
-          asduAddress: counterValues[0]?.asduAddress || 0,
+          asduAddress: client.asdu || 0,
           cot: 10
         }]);
       }
     } else {
-      plugin.log(`No counter values to send to client ${clientId}`, 2);
+      plugin.log(`Нет значений счётчиков для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
       server.sendCommands(clientId, [{
         typeId: 101,
         ioa: 0,
         value: qcc,
-        asduAddress: 0,
+        asduAddress: client.asdu || 0,
         cot: 10
       }]);
     }
@@ -306,7 +372,7 @@ module.exports = function (plugin) {
       for (const key in sboSelections[clientId]) {
         if (now - sboSelections[clientId][key].timestamp > SBO_TIMEOUT) {
           delete sboSelections[clientId][key];
-          plugin.log(`Cleared expired SBO selection for client ${clientId}, key=${key}`, 2);
+          plugin.log(`Очищена просроченная SBO выборка для клиента ${clientId}, ключ=${key}`, 2);
         }
       }
       if (Object.keys(sboSelections[clientId]).length === 0) {
@@ -335,9 +401,9 @@ module.exports = function (plugin) {
           cot: 10
         }]);
       } catch (e) {
-        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
       }
-      plugin.log(`Error for command typeId=${typeId}: Unknown object, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Ошибка для команды typeId=${typeId}: Неизвестный объект, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
@@ -352,9 +418,9 @@ module.exports = function (plugin) {
           cot: 10
         }]);
       } catch (e) {
-        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
       }
-      plugin.log(`Error for command typeId=${typeId}: ${!cmdItem ? 'No command in curCmd' : `Invalid quality (${cmdItem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Ошибка для команды typeId=${typeId}: ${!cmdItem ? 'Нет команды в curCmd' : `Недопустимое качество (${cmdItem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
@@ -369,14 +435,14 @@ module.exports = function (plugin) {
           cot: 10
         }]);
       } catch (e) {
-        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
       }
-      plugin.log(`Invalid value ${val} for typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Недопустимое значение ${val} для typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
     const processedVal = (typeId === 45 || typeId === 58) ? val === 1 :
-                        [46, 47, 49, 51, 59, 60, 62, 64].includes(typeId) ? Math.round(val) : val;
+      [46, 47, 49, 51, 59, 60, 62, 64].includes(typeId) ? Math.round(val) : val;
 
     let execTime = null;
     let commandType = 'none';
@@ -409,12 +475,12 @@ module.exports = function (plugin) {
               cot: 10
             }]);
           } catch (e) {
-            plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+            plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
           }
-          plugin.log(`Invalid QOC ${ql} for typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+          plugin.log(`Недопустимое QOC ${ql} для typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
           return;
       }
-      plugin.log(`Command typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}: QOC=${ql} (${commandType}), execTime=${execTime === null ? 'none' : execTime + 'ms'}`, 2);
+      plugin.log(`Команда typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}: QOC=${ql} (${commandType}), execTime=${execTime === null ? 'нет' : execTime + 'ms'}`, 2);
     }
 
     if (cmdExec === 'direct' && bselCmd) {
@@ -428,9 +494,9 @@ module.exports = function (plugin) {
           cot: 10
         }]);
       } catch (e) {
-        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
       }
-      plugin.log(`Select not allowed in direct mode for typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Выборка не разрешена в прямом режиме для typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
     } else if (cmdExec === 'select' && !bselCmd && !sboClient[sboKey]) {
       try {
         server.sendCommands(clientId, [{
@@ -442,9 +508,9 @@ module.exports = function (plugin) {
           cot: 10
         }]);
       } catch (e) {
-        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
       }
-      plugin.log(`Direct command not allowed in SBO mode for typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Прямая команда не разрешена в режиме SBO для typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
     } else if (cmdExec === 'select' && bselCmd) {
       sboSelections[clientId] = sboSelections[clientId] || {};
       sboSelections[clientId][sboKey] = { ioa, asduAddress, timestamp: Date.now() };
@@ -458,9 +524,9 @@ module.exports = function (plugin) {
           cot: 7
         }]);
       } catch (e) {
-        plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
       }
-      plugin.log(`SBO Select successful for client ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`SBO выборка успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       cleanupSboSelections();
     } else {
       if (cmdExec === 'direct' || (cmdExec === 'select' && sboClient[sboKey] && sboClient[sboKey].ioa === ioa && sboClient[sboKey].asduAddress === asduAddress)) {
@@ -486,9 +552,9 @@ module.exports = function (plugin) {
                 prop,
                 value: processedVal
               });
-              plugin.log(`Sent setval command: did=${did}, prop=${prop}, value=${processedVal}`, 2);
+              plugin.log(`Отправлена команда setval: did=${did}, prop=${prop}, value=${processedVal}`, 2);
             } catch (e) {
-              plugin.log(`Error in plugin.send: ${util.inspect(e)}`, 2);
+              plugin.log(`Ошибка в plugin.send: ${util.inspect(e)}`, 2);
             }
 
             if ([45, 46, 58, 59].includes(typeId) && execTime !== null && execTime > 0) {
@@ -501,14 +567,14 @@ module.exports = function (plugin) {
                     prop,
                     value: 0
                   });
-                  plugin.log(`Sent reset command: did=${did}, prop=${prop}, value=0 after ${execTime}ms`, 2);
+                  plugin.log(`Отправлена команда сброса: did=${did}, prop=${prop}, value=0 после ${execTime}ms`, 2);
                 } catch (e) {
-                  plugin.log(`Error in plugin.send (reset): ${util.inspect(e)}`, 2);
+                  plugin.log(`Ошибка в plugin.send (сброс): ${util.inspect(e)}`, 2);
                 }
               }, execTime);
             }
           } else {
-            plugin.log(`No filter item found for asduAddress=${asduAddress}, ioa=${ioa}, cannot send setval`, 2);
+            plugin.log(`Не найден элемент фильтра для asduAddress=${asduAddress}, ioa=${ioa}, невозможно отправить setval`, 2);
           }
 
           server.sendCommands(clientId, [{
@@ -522,12 +588,12 @@ module.exports = function (plugin) {
 
           if (cmdExec === 'select') {
             delete sboSelections[clientId][sboKey];
-            plugin.log(`SBO Operate successful for client ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+            plugin.log(`SBO операция успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
           } else {
-            plugin.log(`Direct command successful for client ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+            plugin.log(`Прямая команда успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
           }
         } catch (e) {
-          plugin.log(`Error sending command for client ${clientId}: ${util.inspect(e)}`, 2);
+          plugin.log(`Ошибка отправки команды для клиента ${clientId}: ${util.inspect(e)}`, 2);
           try {
             server.sendCommands(clientId, [{
               typeId,
@@ -538,7 +604,7 @@ module.exports = function (plugin) {
               cot: 10
             }]);
           } catch (err) {
-            plugin.log(`Error in server.sendCommands: ${util.inspect(err)}`, 2);
+            plugin.log(`Ошибка в server.sendCommands: ${util.inspect(err)}`, 2);
           }
         }
       } else {
@@ -552,32 +618,42 @@ module.exports = function (plugin) {
             cot: 10
           }]);
         } catch (e) {
-          plugin.log(`Error in server.sendCommands: ${util.inspect(e)}`, 2);
+          plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
         }
-        plugin.log(`SBO Operate failed: No prior Select for client ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+        plugin.log(`SBO операция не удалась: Нет предварительной выборки для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       }
     }
   }
 
   const server = new IEC104Server((event, data) => {
-    plugin.log(`Server Event: ${event}, Data: ${JSON.stringify(data, null, 2)}`, 2);
+    plugin.log(`Событие сервера: ${event}, Данные: ${JSON.stringify(data, null, 2)}`, 2);
     if (event === 'data') {
       if (data.type === 'control') {
-        clients[data.clientId] = { 
-          activated: data.event === "activated" ? 1 : 0
+        clients[data.clientId] = {
+          activated: data.event === "activated" ? 1 : 0,
+          asdu: clients[data.clientId]?.asdu || null
         };
         if (data.event === 'activated') {
-          //sendCurrentValues(data.clientId);
-          //sendBufferedEvents(data.clientId);
+          //sendCurrentChanges(data.clientId);
         } else if (data.event === 'disconnected') {
           delete sboSelections[data.clientId];
           delete clients[data.clientId];
+          plugin.log(`Клиент ${data.clientId} отключён, сохранён в ipAsduToClientId для возможного восстановления`, 2);
         }
       }
       if (Array.isArray(data)) {
         data.forEach(cmd => {
           try {
             const { clientId, typeId, ioa, val, quality, bselCmd, ql, timestamp, asduAddress } = cmd;
+
+            if (clients[clientId] && asduAddress && !clients[clientId].asdu) {
+              clients[clientId].asdu = asduAddress;
+              const ip = clientId.split(':')[0];
+              const ipAsdu = `${ip}:${asduAddress}`;
+              ipAsduToClientId[ipAsdu] = clientId;
+              plugin.log(`Клиент ${clientId} привязан к ip:ASDU=${ipAsdu}`, 2);
+            }
+
             const itemKey = `${asduAddress}.${ioa}`;
             const item = filter[itemKey];
             const cmdItem = item && item.did && item.prop ? curCmd[item.did + "." + item.prop] : null;
@@ -593,7 +669,7 @@ module.exports = function (plugin) {
                 handleControlCommand(clientId, 46, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 3);
                 break;
               case 47:
-                handleControlCommand(clientId, 47, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 5);
+                handleControlCommand(clientId, 47, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, HX5);
                 break;
               case 48:
                 handleControlCommand(clientId, 48, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 9);
@@ -629,7 +705,7 @@ module.exports = function (plugin) {
                 handleControlCommand(clientId, 64, ioa, val, ql, timestamp, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 33);
                 break;
               case 100:
-                plugin.log(`Received Interrogation Command: clientId=${clientId}, ioa=${ioa}, qoi=${val}, asduAddress=${asduAddress}`, 2);
+                plugin.log(`Получена команда опроса: clientId=${clientId}, ioa=${ioa}, qoi=${val}, asduAddress=${asduAddress}`, 2);
                 server.sendCommands(clientId, [{
                   typeId: 100,
                   ioa: 0,
@@ -637,55 +713,72 @@ module.exports = function (plugin) {
                   asduAddress,
                   cot: 7
                 }]);
-                sendCurrentValues(clientId);
-                //sendBufferedEvents(clientId);
+                if (useBuffer && asduAddress) {
+                  const ip = clientId.split(':')[0];
+                  const ipAsdu = `${ip}:${asduAddress}`;
+                  const mappedClientId = ipAsduToClientId[ipAsdu];
+                  if (mappedClientId) {
+                    const pointer = clientPointers[ipAsdu] || 0;
+                    plugin.log(`Клиент ${clientId} найден в ipAsduToClientId, отправка буферизованных данных с позиции ${pointer}`, 2);
+                    sendBufferedEvents(mappedClientId, pointer).then(() => {
+                      sendCurrentValues(clientId);
+                    });
+                    
+                  } else {
+                    plugin.log(`Клиент ${clientId} не найден в ipAsduToClientId, отправка всех текущих значений`, 2);
+                    sendCurrentValues(clientId);
+                  }
+                } else {
+                  plugin.log(`Буфер выключен или нет asduAddress, отправка всех текущих значений клиенту ${clientId}`, 2);
+                  sendCurrentValues(clientId);
+                }
                 break;
               case 101:
-                plugin.log(`Received Counter Interrogation Command: clientId=${clientId}, ioa=${ioa}, qcc=${val}, asduAddress=${asduAddress}`, 2);
+                plugin.log(`Получена команда опроса счётчиков: clientId=${clientId}, ioa=${ioa}, qcc=${val}, asduAddress=${asduAddress}`, 2);
                 sendCounterValues(clientId, val);
                 break;
               case 102:
-                plugin.log(`Received Read Command: clientId=${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+                plugin.log(`Получена команда чтения: clientId=${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 const curitem = item && item.did && item.prop ? curData[item.did + "." + item.prop] : null;
                 if (!item || !curitem || curitem.quality !== 0) {
-                    server.sendCommands(clientId, [{
-                        typeId: item?.ioObjMtype || 1,
-                        ioa,
-                        value: null,
-                        asduAddress,
-                        quality: 0x40,
-                        cot: 47
-                    }]);
-                    plugin.log(`Error for Read Command: ${!item || !curitem ? "Unknown object" : `Invalid quality (${curitem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+                  server.sendCommands(clientId, [{
+                    typeId: item?.ioObjMtype || 1,
+                    ioa,
+                    value: null,
+                    asduAddress,
+                    quality: 0x40,
+                    cot: 47
+                  }]);
+                  plugin.log(`Ошибка для команды чтения: ${!item || !curitem ? "Неизвестный объект" : `Недопустимое качество (${curitem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 } else {
-                    server.sendCommands(clientId, [{
-                        ...curitem,
-                        cot: 5
-                    }]);
+                  server.sendCommands(clientId, [{
+                    ...curitem,
+                    cot: 5
+                  }]);
                 }
                 break;
               case 103:
-                plugin.log(`Received Clock Sync Command: clientId=${clientId}, ioa=${ioa}, timestamp=${timestamp}, asduAddress=${asduAddress}`, 2);
+                plugin.log(`Получена команда синхронизации времени: clientId=${clientId}, ioa=${ioa}, timestamp=${timestamp}, asduAddress=${asduAddress}`, 2);
                 server.sendCommands(clientId, [{
-                    typeId: 103,
-                    ioa: 0,
-                    timestamp,
-                    asduAddress,
-                    cot: 7
+                  typeId: 103,
+                  ioa: 0,
+                  timestamp,
+                  asduAddress,
+                  cot: 7
                 }]);
                 break;
               default:
-                plugin.log(`Unknown command typeId=${typeId}, clientId=${clientId}, ioa=${ioa}, value=${val}, asduAddress=${asduAddress}`, 2);
+                plugin.log(`Неизвестный тип команды typeId=${typeId}, clientId=${clientId}, ioa=${ioa}, value=${val}, asduAddress=${asduAddress}`, 2);
                 server.sendCommands(clientId, [{
-                    typeId,
-                    ioa,
-                    value: val,
-                    asduAddress,
-                    cot: 10
+                  typeId,
+                  ioa,
+                  value: val,
+                  asduAddress,
+                  cot: 10
                 }]);
             }
           } catch (e) {
-            plugin.log(`ERROR Command: ${util.inspect(e)}`, 2);
+            plugin.log(`ОШИБКА команды: ${util.inspect(e)}`, 2);
             server.sendCommands(clientId, [{
               typeId: cmd.typeId,
               ioa: cmd.ioa,
@@ -697,7 +790,6 @@ module.exports = function (plugin) {
         });
       }
     }
-    
   });
 
   server.start({
@@ -723,14 +815,14 @@ module.exports = function (plugin) {
 
   function terminate() {
     Object.values(periodicTasks).forEach(task => clearInterval(task.timerId));
-    plugin.log('TERMINATE PLUGIN', 2);
+    plugin.log('ЗАВЕРШЕНИЕ ПЛАГИНА', 2);
     plugin.exit();
   }
 
   function filterExtraChannels() {
     let res = { did_prop: [] };
     if (!Array.isArray(extraChannels)) {
-      plugin.log('Error: extraChannels is not an array', 2);
+      plugin.log('Ошибка: extraChannels не является массивом', 2);
       return res;
     }
 
@@ -749,7 +841,7 @@ module.exports = function (plugin) {
               sendPeriodicDataByInterval(intervalMs);
             }, intervalMs)
           };
-          plugin.log(`Set periodic task for interval ${intervalMs / 60000} minutes`, 2);
+          plugin.log(`Установлена периодическая задача на интервал ${intervalMs / 60000} минут`, 2);
         }
         periodicTasks[intervalMs].didProps.push(didProp);
       }

@@ -22,6 +22,7 @@
     "ioObjMtype": "Information object type",
     "ioObjCtype": "Control object type",
     "maxClients": "Max clients",
+    "useBuffer" : "Use Buffer",
     "maxBufferSize": "Max buffer size messages",
     "cmdExec": "Execution command type",
     "direct": "Direct",

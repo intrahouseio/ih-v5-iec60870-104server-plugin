@@ -39,10 +39,17 @@
       "default": 10
     },
     {
+      "prop": "useBuffer",
+      "title": "$useBuffer",
+      "type": "cb",
+      "default": false
+    },
+    {
       "prop": "maxBufferSize",
       "title": "$maxBufferSize",
       "type": "input",
-      "default": 5000
+      "default": 5000,
+      "hide": "!data.p1.useBuffer"
     }
   ],
 
