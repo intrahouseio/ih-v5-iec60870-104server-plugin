@@ -18,7 +18,7 @@ module.exports = function (plugin) {
   const clientPointers = {};
   const sboSelections = {};
   const SBO_TIMEOUT = 30000;
-  const MAX_BATCH_SIZE = 10;
+  const MAX_BATCH_SIZE = 50;
 
   const validCmdExec = ['direct', 'select'];
   const cmdExec = validCmdExec.includes(params.cmdExec) ? params.cmdExec : 'direct';
@@ -77,7 +77,7 @@ module.exports = function (plugin) {
               value,
               asduAddress: Number(curitem.asdu),
               timestamp: Date.now(),
-              quality: item.chstatus != undefined ? Number(item.chstatus) : 0,
+              quality: item.chstatus != undefined ? 128 : 0,
               cot: 3
             };
             curData[curitem.did + '.' + curitem.prop] = event;
@@ -98,7 +98,7 @@ module.exports = function (plugin) {
               value,
               asduAddress: Number(curitem.asdu),
               timestamp: Date.now(),
-              quality: item.chstatus != undefined ? Number(item.chstatus) : 0,
+              quality: item.chstatus != undefined ? 128 : 0,
               cot: 3
             };
             curCmd[curitem.did + '.' + curitem.prop] = cmd;
@@ -116,7 +116,7 @@ module.exports = function (plugin) {
               for (let i = 0; i < batches.length; i++) {
                 const batch = batches[i];
                 const success = server.sendCommands(clientId, batch);
-                sleep(50).then(() => {
+                sleep(10).then(() => {
                   if (success) {
                     plugin.log(`Отправлено ${batch.length} событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
                   } else {
@@ -187,7 +187,7 @@ module.exports = function (plugin) {
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
-          await sleep(50);
+          await sleep(10);
           if (success) {
             plugin.log(`Отправлено ${batch.length} буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
           } else {
@@ -221,7 +221,7 @@ module.exports = function (plugin) {
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
-          await sleep(50);
+          await sleep(10);
           if (success) {
             plugin.log(`Отправлено ${batch.length} текущих значений клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
           } else {
@@ -249,7 +249,7 @@ module.exports = function (plugin) {
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
-          await sleep(50);
+          await sleep(10);
           if (success) {
             plugin.log(`Отправлено ${batch.length} текущих изменений клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
           } else {
@@ -290,7 +290,7 @@ module.exports = function (plugin) {
               for (let i = 0; i < batches.length; i++) {
                 const batch = batches[i];
                 const success = server.sendCommands(clientId, batch);
-                sleep(50).then(() => {
+                sleep(10).then(() => {
                   if (success) {
                     plugin.log(`Отправлено ${batch.length} периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
                   } else {
@@ -336,7 +336,7 @@ module.exports = function (plugin) {
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const success = server.sendCommands(clientId, batch);
-          sleep(50).then(() => {
+          sleep(10).then(() => {
             if (success) {
               plugin.log(`Отправлено ${batch.length} значений счётчиков клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
             } else {

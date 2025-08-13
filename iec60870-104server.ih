@@ -2,5 +2,5 @@
     "id":"iec60870-104server",
     "description":"IEC 60870-104 server plugin",
     "cross":true,
-	"version":"5.0.5"
+	"version":"5.0.6"
 }
