@@ -18,7 +18,25 @@ module.exports = function (plugin) {
   const clientPointers = {};
   const sboSelections = {};
   const SBO_TIMEOUT = 30000;
-  const MAX_BATCH_SIZE = 50;
+  const MAX_BATCH_SIZE = 50; // увеличено для эффективности
+
+  // 🚚 Приоритетные очереди отправки
+  const PRIORITY_HIGH = 0;      // Подтверждения, команды управления
+  const PRIORITY_MEDIUM = 1;    // Ответы на запросы
+  const PRIORITY_LOW = 2;       // Текущие значения
+  const PRIORITY_BACKGROUND = 3; // Телеметрия, периодика
+
+  let priorityQueues = {
+    0: [], // high
+    1: [], // medium
+    2: [], // low
+    3: []  // background
+  };
+
+  let isProcessing = false;
+  const BATCHES_PER_TICK = 5;
+  const MAX_TOTAL_QUEUE_SIZE = 500;
+  const PROCESS_INTERVAL_MS = 10;
 
   const validCmdExec = ['direct', 'select'];
   const cmdExec = validCmdExec.includes(params.cmdExec) ? params.cmdExec : 'direct';
@@ -58,97 +76,239 @@ module.exports = function (plugin) {
     return result;
   }
 
+  // 🎯 Определяем приоритет батча по его содержимому
+  function getBatchPriority(batch) {
+    const firstCmd = batch[0];
+    if (!firstCmd) return PRIORITY_BACKGROUND;
+
+    // HIGH: подтверждения, команды управления
+    if ([7, 10].includes(firstCmd.cot)) {
+      return PRIORITY_HIGH;
+    }
+    if ([45, 46, 47, 48, 49, 50, 51, 58, 59, 60, 61, 62, 63, 64].includes(firstCmd.typeId)) {
+      return PRIORITY_HIGH;
+    }
+
+    // MEDIUM: ответы на запросы
+    if ([5, 20, 37].includes(firstCmd.cot)) {
+      return PRIORITY_MEDIUM;
+    }
+    if ([100, 101, 102, 103].includes(firstCmd.typeId)) {
+      return PRIORITY_MEDIUM;
+    }
+
+    // LOW: текущие значения
+    if (firstCmd.cot === 20) {
+      return PRIORITY_LOW;
+    }
+
+    // BACKGROUND: всё остальное (телеметрия)
+    return PRIORITY_BACKGROUND;
+  }
+
+  // 📥 Добавляет команды в приоритетную очередь
+  function enqueueCommands(clientId, commands) {
+    if (!Array.isArray(commands)) {
+      commands = [commands];
+    }
+
+    const client = clients[clientId];
+    if (!client || !client.activated) {
+      plugin.log(`Клиент ${clientId} не активен — команды не добавлены в очередь`, 3);
+      return;
+    }
+
+    // Группируем в батчи
+    const batches = chunkArray(commands, MAX_BATCH_SIZE);
+
+    const priorityCounts = {};
+
+    batches.forEach(batch => {
+      const priority = getBatchPriority(batch);
+      priorityCounts[priority] = (priorityCounts[priority] || 0) + 1;
+
+      priorityQueues[priority].push({
+        clientId,
+        batch,
+        attempts: 0,
+        firstAttemptTime: Date.now(),
+        priority
+      });
+    });
+
+    // Логируем распределение по приоритетам
+    let logMsg = `📥 Добавлено ${batches.length} батчей для ${clientId}: `;
+    for (let p of [0,1,2,3]) {
+      if (priorityCounts[p]) logMsg += `P${p}:${priorityCounts[p]} `;
+    }
+    plugin.log(logMsg, 3);
+
+    // Запускаем обработчик, если не запущен
+    if (!isProcessing) {
+      processQueue();
+    }
+  }
+
+  // 🔄 Обрабатывает очередь по приоритетам
+  async function processQueue() {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    // Защита от переполнения
+    const totalSize = Object.values(priorityQueues).reduce((sum, q) => sum + q.length, 0);
+    if (totalSize > MAX_TOTAL_QUEUE_SIZE) {
+      let toDrop = totalSize - MAX_TOTAL_QUEUE_SIZE;
+      for (let p = PRIORITY_BACKGROUND; p >= PRIORITY_HIGH; p--) {
+        if (toDrop <= 0) break;
+        const dropFromThis = Math.min(toDrop, priorityQueues[p].length);
+        if (dropFromThis > 0) {
+          priorityQueues[p].splice(0, dropFromThis);
+          toDrop -= dropFromThis;
+          plugin.log(`⚠️ Переполнение: удалено ${dropFromThis} батчей с приоритетом ${p}`, 2);
+        }
+      }
+    }
+
+    let processed = 0;
+
+    // Обрабатываем от высшего приоритета к низшему
+    for (let priority = PRIORITY_HIGH; priority <= PRIORITY_BACKGROUND; priority++) {
+      while (processed < BATCHES_PER_TICK && priorityQueues[priority].length > 0) {
+        const task = priorityQueues[priority].shift();
+        if (!task) break;
+
+        const { clientId, batch, attempts, firstAttemptTime } = task;
+
+        const client = clients[clientId];
+        if (!client || !client.activated) {
+          plugin.log(`🔌 Клиент ${clientId} отключён — батч P${priority} отброшен (попыток: ${attempts})`, 3);
+          continue;
+        }
+
+        // Таймаут жизни батча
+        if (Date.now() - firstAttemptTime > 30000) {
+          plugin.log(`⏳ Батч P${priority} для ${clientId} устарел (>30сек) — отбрасываем после ${attempts} попыток`, 3);
+          continue;
+        }
+
+        try {
+          const newAttempts = attempts + 1;
+          const success = server.sendCommands(clientId, batch);
+
+          if (success) {
+            plugin.log(`✅ Отправлен батч (${batch.length} команд, P${priority}) клиенту ${clientId} (попытка ${newAttempts})`, 3);
+          } else {
+            if (newAttempts >= 3) {
+              plugin.log(`❌ Батч P${priority} для ${clientId} не отправлен после ${newAttempts} попыток — отбрасываем`, 3);
+            } else {
+              priorityQueues[priority].unshift({ ...task, attempts: newAttempts });
+              plugin.log(`⚠️ Ошибка отправки P${priority} — возвращаем в очередь (попытка ${newAttempts})`, 4);
+            }
+          }
+        } catch (e) {
+          const newAttempts = attempts + 1;
+          if (newAttempts >= 3) {
+            plugin.log(`❌ Исключение при отправке P${priority} — отбрасываем после ${newAttempts} попыток: ${e.message}`, 3);
+          } else {
+            priorityQueues[priority].unshift({ ...task, attempts: newAttempts });
+            plugin.log(`⚠️ Исключение P${priority} (попытка ${newAttempts}): ${e.message}`, 4);
+          }
+        } finally {
+          // Обновляем указатель буфера для событий
+          if (client.asdu && batch.some(cmd => cmd.cot === 3 || cmd.cot === 48)) {
+            const ipAsdu = `${clientId.split(':')[0]}:${client.asdu}`;
+            updateClientPointer(ipAsdu, eventBuffer.length);
+          }
+        }
+
+        processed++;
+      }
+      if (processed >= BATCHES_PER_TICK) break;
+    }
+
+    isProcessing = false;
+    setTimeout(processQueue, PROCESS_INTERVAL_MS);
+  }
+
   function subExtraChannels(filter) {
     plugin.onSub('devices', filter, data => {
-      curDataArr = [];
+      const newEvents = [];
       data.forEach(item => {
         const curitem = filter[item.did + "." + item.prop];
-        if (curitem) {
-          if (curitem.extype === 'pub') {
-            let value;
-            if (curitem.ioObjMtype == 1 || curitem.ioObjMtype == 30) {
-              value = item.value == 1 ? true : false;
-            } else {
-              value = Number(item.value);
-            }
-            const event = {
-              typeId: Number(curitem.ioObjMtype),
-              ioa: Number(curitem.address),
-              value,
-              asduAddress: Number(curitem.asdu),
-              timestamp: Date.now(),
-              quality: item.chstatus != undefined ? 128 : 0,
-              cot: 3
-            };
-            curData[curitem.did + '.' + curitem.prop] = event;
-            curDataArr.push(event);
-            if (useBuffer) {
-              addToEventBuffer(event);
-            }
-          } else if (curitem.extype === 'set') {
-            let value;
-            if (curitem.ioObjCtype == 45 || curitem.ioObjCtype == 58) {
-              value = item.value == 1 ? true : false;
-            } else {
-              value = Number(item.value);
-            }
-            const cmd = {
-              typeId: Number(curitem.ioObjCtype),
-              ioa: Number(curitem.address),
-              value,
-              asduAddress: Number(curitem.asdu),
-              timestamp: Date.now(),
-              quality: item.chstatus != undefined ? 128 : 0,
-              cot: 3
-            };
-            curCmd[curitem.did + '.' + curitem.prop] = cmd;
+        if (!curitem) return;
+
+        if (curitem.extype === 'pub') {
+          let value;
+          if (curitem.ioObjMtype == 1 || curitem.ioObjMtype == 30) {
+            value = item.value == 1 ? true : false;
+          } else {
+            value = Number(item.value);
           }
+          const event = {
+            typeId: Number(curitem.ioObjMtype),
+            ioa: Number(curitem.address),
+            value,
+            asduAddress: Number(curitem.asdu),
+            timestamp: Date.now(),
+            quality: item.chstatus == undefined ? 128 : 0,
+            cot: 3
+          };
+          curData[curitem.did + '.' + curitem.prop] = event;
+          newEvents.push(event);
+          if (useBuffer) {
+            addToEventBuffer(event);
+          }
+        } else if (curitem.extype === 'set') {
+          let value;
+          if (curitem.ioObjCtype == 45 || curitem.ioObjCtype == 58) {
+            value = item.value == 1 ? true : false;
+          } else {
+            value = Number(item.value);
+          }
+          const cmd = {
+            typeId: Number(curitem.ioObjCtype),
+            ioa: Number(curitem.address),
+            value,
+            asduAddress: Number(curitem.asdu),
+            timestamp: Date.now(),
+            cot: 3
+          };
+          curCmd[curitem.did + '.' + curitem.prop] = cmd;
         }
       });
 
-      const status = server.getStatus();
-      if (status.connectedClients.length > 0 ) {
-        status.connectedClients.forEach(clientId => {
-          const client = clients[clientId];
-          if (client?.activated === 1) {
-            try {
-              const batches = chunkArray(curDataArr, MAX_BATCH_SIZE);
-              for (let i = 0; i < batches.length; i++) {
-                const batch = batches[i];
-                const success = server.sendCommands(clientId, batch);
-                sleep(10).then(() => {
-                  if (success) {
-                    plugin.log(`Отправлено ${batch.length} событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
-                  } else {
-                    plugin.log(`Не удалось отправить ${batch.length} событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-                  }
-                });
-              }
-              if (client.asdu) {
-                const ipAsdu = `${clientId.split(':')[0]}:${client.asdu}`;
-                updateClientPointer(ipAsdu, eventBuffer.length);
-              }
-            } catch (e) {
-              plugin.log(`Ошибка команды для клиента ${clientId}: ${util.inspect(e)}`, 2);
+      if (newEvents.length > 0) {
+        curDataArr = [...curDataArr, ...newEvents];
+
+        const status = server.getStatus();
+        if (status.connectedClients.length > 0) {
+          status.connectedClients.forEach(clientId => {
+            const client = clients[clientId];
+            if (client?.activated === 1) {
+              enqueueCommands(clientId, newEvents);
             }
-          }
-        });
+          });
+        }
       }
     });
   }
 
   plugin.onChange('extra', async (recs) => {
     Object.values(periodicTasks).forEach(task => clearInterval(task.timerId));
+
     extraChannels = await plugin.extra.get();
     curData = {};
     curCmd = {};
+    curDataArr = [];
+    priorityQueues = { 0: [], 1: [], 2: [], 3: [] };
+    isProcessing = false;
     periodicTasks = {};
     filter = filterExtraChannels();
     subExtraChannels(filter);
   });
 
   function addToEventBuffer(event) {
-    const maxBufferSize = Number(params.maxBufferSize) || 1000; // Размер буфера в количестве сообщений
+    const maxBufferSize = Number(params.maxBufferSize) || 1000;
     if (eventBuffer.length >= maxBufferSize) {
       eventBuffer.shift();
       for (const ipAsdu in clientPointers) {
@@ -183,30 +343,20 @@ module.exports = function (plugin) {
 
     if (eventsToSend.length > 0) {
       try {
-        const batches = chunkArray(eventsToSend, MAX_BATCH_SIZE);
-        for (let i = 0; i < batches.length; i++) {
-          const batch = batches[i];
-          const success = server.sendCommands(clientId, batch);
-          await sleep(10);
-          if (success) {
-            plugin.log(`Отправлено ${batch.length} буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
-          } else {
-            plugin.log(`Не удалось отправить ${batch.length} буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-          }
-        }
+        enqueueCommands(clientId, eventsToSend);
         updateClientPointer(ipAsdu, eventBuffer.length);
       } catch (e) {
-        plugin.log(`Ошибка отправки буферизованных событий клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(e)}`, 2);
+        plugin.log(`Ошибка отправки буферизованных событий клиенту ${clientId}: ${util.inspect(e)}`, 2);
       }
     } else {
-      plugin.log(`Нет буферизованных событий для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+      plugin.log(`Нет буферизованных событий для отправки клиенту ${clientId}`, 2);
     }
   }
 
   async function sendCurrentValues(clientId) {
     const client = clients[clientId];
     if (!client) {
-      plugin.log(`Клиент ${clientId} не найден, невозможно отправить текущие значения`, 2);
+      plugin.log(`Клиент ${clientId} не найден`, 2);
       return;
     }
 
@@ -217,50 +367,30 @@ module.exports = function (plugin) {
 
     if (currentValues.length > 0) {
       try {
-        const batches = chunkArray(currentValues, MAX_BATCH_SIZE);
-        for (let i = 0; i < batches.length; i++) {
-          const batch = batches[i];
-          const success = server.sendCommands(clientId, batch);
-          await sleep(10);
-          if (success) {
-            plugin.log(`Отправлено ${batch.length} текущих значений клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
-          } else {
-            plugin.log(`Не удалось отправить ${batch.length} текущих значений клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-          }
-        }
+        enqueueCommands(clientId, currentValues);
       } catch (e) {
         plugin.log(`Ошибка отправки текущих значений клиенту ${clientId}: ${util.inspect(e)}`, 2);
       }
     } else {
-      plugin.log(`Нет текущих значений для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+      plugin.log(`Нет текущих значений для отправки клиенту ${clientId}`, 2);
     }
   }
 
   async function sendCurrentChanges(clientId) {
     const client = clients[clientId];
     if (!client) {
-      plugin.log(`Клиент ${clientId} не найден, невозможно отправить текущие изменения`, 2);
+      plugin.log(`Клиент ${clientId} не найден`, 2);
       return;
     }
 
     if (curDataArr.length > 0) {
       try {
-        const batches = chunkArray(curDataArr, MAX_BATCH_SIZE);
-        for (let i = 0; i < batches.length; i++) {
-          const batch = batches[i];
-          const success = server.sendCommands(clientId, batch);
-          await sleep(10);
-          if (success) {
-            plugin.log(`Отправлено ${batch.length} текущих изменений клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
-          } else {
-            plugin.log(`Не удалось отправить ${batch.length} текущих изменений клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-          }
-        }
+        enqueueCommands(clientId, curDataArr);
       } catch (e) {
         plugin.log(`Ошибка отправки текущих изменений клиенту ${clientId}: ${util.inspect(e)}`, 2);
       }
     } else {
-      plugin.log(`Нет текущих изменений для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
+      plugin.log(`Нет текущих изменений для отправки клиенту ${clientId}`, 2);
     }
   }
 
@@ -286,18 +416,7 @@ module.exports = function (plugin) {
           const client = clients[clientId];
           if (client?.activated === 1) {
             try {
-              const batches = chunkArray(dataToSend, MAX_BATCH_SIZE);
-              for (let i = 0; i < batches.length; i++) {
-                const batch = batches[i];
-                const success = server.sendCommands(clientId, batch);
-                sleep(10).then(() => {
-                  if (success) {
-                    plugin.log(`Отправлено ${batch.length} периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
-                  } else {
-                    plugin.log(`Не удалось отправить ${batch.length} периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-                  }
-                });
-              }
+              enqueueCommands(clientId, dataToSend);
             } catch (e) {
               plugin.log(`Ошибка отправки периодических данных за интервал ${intervalMs / 60000} минут клиенту ${clientId}: ${util.inspect(e)}`, 2);
             }
@@ -312,9 +431,17 @@ module.exports = function (plugin) {
   function sendCounterValues(clientId, qcc) {
     const client = clients[clientId];
     if (!client) {
-      plugin.log(`Клиент ${clientId} не найден, невозможно отправить значения счётчиков`, 2);
+      plugin.log(`Клиент ${clientId} не найден`, 2);
       return;
     }
+
+    enqueueCommands(clientId, [{
+      typeId: 101,
+      ioa: 0,
+      value: qcc,
+      asduAddress: client.asdu || 0,
+      cot: 7
+    }]);
 
     const counterValues = Object.values(curData)
       .filter(item => item.typeId === 15)
@@ -325,28 +452,10 @@ module.exports = function (plugin) {
 
     if (counterValues.length > 0) {
       try {
-        server.sendCommands(clientId, [{
-          typeId: 101,
-          ioa: 0,
-          value: qcc,
-          asduAddress: client.asdu || 0,
-          cot: 7
-        }]);
-        const batches = chunkArray(counterValues, MAX_BATCH_SIZE);
-        for (let i = 0; i < batches.length; i++) {
-          const batch = batches[i];
-          const success = server.sendCommands(clientId, batch);
-          sleep(10).then(() => {
-            if (success) {
-              plugin.log(`Отправлено ${batch.length} значений счётчиков клиенту ${clientId} (asdu=${client.asdu || 'unknown'}): ${util.inspect(batch)}`, 2);
-            } else {
-              plugin.log(`Не удалось отправить ${batch.length} значений счётчиков клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-            }
-          });
-        }
+        enqueueCommands(clientId, counterValues);
       } catch (e) {
         plugin.log(`Ошибка отправки значений счётчиков клиенту ${clientId}: ${util.inspect(e)}`, 2);
-        server.sendCommands(clientId, [{
+        enqueueCommands(clientId, [{
           typeId: 101,
           ioa: 0,
           value: qcc,
@@ -355,8 +464,8 @@ module.exports = function (plugin) {
         }]);
       }
     } else {
-      plugin.log(`Нет значений счётчиков для отправки клиенту ${clientId} (asdu=${client.asdu || 'unknown'})`, 2);
-      server.sendCommands(clientId, [{
+      plugin.log(`Нет значений счётчиков для отправки клиенту ${clientId}`, 2);
+      enqueueCommands(clientId, [{
         typeId: 101,
         ioa: 0,
         value: qcc,
@@ -391,58 +500,55 @@ module.exports = function (plugin) {
 
   function handleControlCommand(clientId, typeId, ioa, val, ql, timestamp, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, responseTypeId) {
     if (!item) {
-      try {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: val,
-          timestamp,
-          asduAddress,
-          cot: 10
-        }]);
-      } catch (e) {
-        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-      }
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: val,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
       plugin.log(`Ошибка для команды typeId=${typeId}: Неизвестный объект, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
-    if (!cmdItem || cmdItem.quality !== 0) {
-      try {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: val,
-          timestamp,
-          asduAddress,
-          cot: 10
-        }]);
-      } catch (e) {
-        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-      }
-      plugin.log(`Ошибка для команды typeId=${typeId}: ${!cmdItem ? 'Нет команды в curCmd' : `Недопустимое качество (${cmdItem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+    if (!cmdItem) {
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: val,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
+      plugin.log(`Ошибка для команды typeId=${typeId}: Нет команды в curCmd, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
     if (!validateCommandValue(typeId, val)) {
-      try {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: val,
-          timestamp,
-          asduAddress,
-          cot: 10
-        }]);
-      } catch (e) {
-        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-      }
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: val,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
       plugin.log(`Недопустимое значение ${val} для typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       return;
     }
 
-    const processedVal = (typeId === 45 || typeId === 58) ? val === 1 :
-      [46, 47, 49, 51, 59, 60, 62, 64].includes(typeId) ? Math.round(val) : val;
+    let processedVal;
+
+    if (typeId === 45 || typeId === 58) {
+      processedVal = val === 1;
+    } else if ([46, 47, 49, 51, 59, 60, 62, 64].includes(typeId)) {
+      processedVal = Math.round(val);
+    } else if ([50, 61, 63].includes(typeId)) {
+      processedVal = String(val);
+    } else {
+      processedVal = val;
+    }
 
     let execTime = null;
     let commandType = 'none';
@@ -465,18 +571,14 @@ module.exports = function (plugin) {
           commandType = 'persistent';
           break;
         default:
-          try {
-            server.sendCommands(clientId, [{
-              typeId,
-              ioa,
-              value: val,
-              timestamp,
-              asduAddress,
-              cot: 10
-            }]);
-          } catch (e) {
-            plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-          }
+          enqueueCommands(clientId, [{
+            typeId,
+            ioa,
+            value: val,
+            timestamp,
+            asduAddress,
+            cot: 10
+          }]);
           plugin.log(`Недопустимое QOC ${ql} для typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
           return;
       }
@@ -484,54 +586,42 @@ module.exports = function (plugin) {
     }
 
     if (cmdExec === 'direct' && bselCmd) {
-      try {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: processedVal,
-          timestamp,
-          asduAddress,
-          cot: 10
-        }]);
-      } catch (e) {
-        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-      }
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: processedVal,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
       plugin.log(`Выборка не разрешена в прямом режиме для typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
     } else if (cmdExec === 'select' && !bselCmd && !sboClient[sboKey]) {
-      try {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: processedVal,
-          timestamp,
-          asduAddress,
-          cot: 10
-        }]);
-      } catch (e) {
-        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-      }
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: processedVal,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
       plugin.log(`Прямая команда не разрешена в режиме SBO для typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
     } else if (cmdExec === 'select' && bselCmd) {
       sboSelections[clientId] = sboSelections[clientId] || {};
       sboSelections[clientId][sboKey] = { ioa, asduAddress, timestamp: Date.now() };
-      try {
-        server.sendCommands(clientId, [{
-          typeId,
-          ioa,
-          value: processedVal,
-          timestamp,
-          asduAddress,
-          cot: 7
-        }]);
-      } catch (e) {
-        plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
-      }
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: processedVal,
+        timestamp,
+        asduAddress,
+        cot: 7
+      }]);
       plugin.log(`SBO выборка успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       cleanupSboSelections();
     } else {
       if (cmdExec === 'direct' || (cmdExec === 'select' && sboClient[sboKey] && sboClient[sboKey].ioa === ioa && sboClient[sboKey].asduAddress === asduAddress)) {
         try {
-          server.sendCommands(clientId, [{
+          enqueueCommands(clientId, [{
             typeId,
             ioa,
             value: processedVal,
@@ -577,10 +667,21 @@ module.exports = function (plugin) {
             plugin.log(`Не найден элемент фильтра для asduAddress=${asduAddress}, ioa=${ioa}, невозможно отправить setval`, 2);
           }
 
-          server.sendCommands(clientId, [{
+          let processedValResp = processedVal;
+          if (responseTypeId === 45 || responseTypeId === 58) {
+            processedValResp = val === 1;
+          } else if ([46, 47, 49, 51, 59, 60, 62, 64].includes(responseTypeId)) {
+            processedValResp = Math.round(val);
+          } else if ([50, 61, 63].includes(responseTypeId)) {
+            processedValResp = String(val);
+          } else {
+            processedValResp = val;
+          }
+
+          enqueueCommands(clientId, [{
             typeId: responseTypeId,
             ioa,
-            value: processedVal,
+            value: processedValResp,
             timestamp,
             asduAddress,
             cot: 20
@@ -594,22 +695,7 @@ module.exports = function (plugin) {
           }
         } catch (e) {
           plugin.log(`Ошибка отправки команды для клиента ${clientId}: ${util.inspect(e)}`, 2);
-          try {
-            server.sendCommands(clientId, [{
-              typeId,
-              ioa,
-              value: processedVal,
-              timestamp,
-              asduAddress,
-              cot: 10
-            }]);
-          } catch (err) {
-            plugin.log(`Ошибка в server.sendCommands: ${util.inspect(err)}`, 2);
-          }
-        }
-      } else {
-        try {
-          server.sendCommands(clientId, [{
+          enqueueCommands(clientId, [{
             typeId,
             ioa,
             value: processedVal,
@@ -617,9 +703,16 @@ module.exports = function (plugin) {
             asduAddress,
             cot: 10
           }]);
-        } catch (e) {
-          plugin.log(`Ошибка в server.sendCommands: ${util.inspect(e)}`, 2);
         }
+      } else {
+        enqueueCommands(clientId, [{
+          typeId,
+          ioa,
+          value: processedVal,
+          timestamp,
+          asduAddress,
+          cot: 10
+        }]);
         plugin.log(`SBO операция не удалась: Нет предварительной выборки для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
       }
     }
@@ -669,7 +762,7 @@ module.exports = function (plugin) {
                 handleControlCommand(clientId, 46, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 3);
                 break;
               case 47:
-                handleControlCommand(clientId, 47, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, HX5);
+                handleControlCommand(clientId, 47, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 5); // ✅ Исправлено HX5 → 5
                 break;
               case 48:
                 handleControlCommand(clientId, 48, ioa, val, ql, undefined, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, 9);
@@ -706,7 +799,7 @@ module.exports = function (plugin) {
                 break;
               case 100:
                 plugin.log(`Получена команда опроса: clientId=${clientId}, ioa=${ioa}, qoi=${val}, asduAddress=${asduAddress}`, 2);
-                server.sendCommands(clientId, [{
+                enqueueCommands(clientId, [{
                   typeId: 100,
                   ioa: 0,
                   value: val,
@@ -723,7 +816,6 @@ module.exports = function (plugin) {
                     sendBufferedEvents(mappedClientId, pointer).then(() => {
                       sendCurrentValues(clientId);
                     });
-                    
                   } else {
                     plugin.log(`Клиент ${clientId} не найден в ipAsduToClientId, отправка всех текущих значений`, 2);
                     sendCurrentValues(clientId);
@@ -741,7 +833,7 @@ module.exports = function (plugin) {
                 plugin.log(`Получена команда чтения: clientId=${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 const curitem = item && item.did && item.prop ? curData[item.did + "." + item.prop] : null;
                 if (!item || !curitem || curitem.quality !== 0) {
-                  server.sendCommands(clientId, [{
+                  enqueueCommands(clientId, [{
                     typeId: item?.ioObjMtype || 1,
                     ioa,
                     value: null,
@@ -751,7 +843,7 @@ module.exports = function (plugin) {
                   }]);
                   plugin.log(`Ошибка для команды чтения: ${!item || !curitem ? "Неизвестный объект" : `Недопустимое качество (${curitem.quality})`}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
                 } else {
-                  server.sendCommands(clientId, [{
+                  enqueueCommands(clientId, [{
                     ...curitem,
                     cot: 5
                   }]);
@@ -759,7 +851,7 @@ module.exports = function (plugin) {
                 break;
               case 103:
                 plugin.log(`Получена команда синхронизации времени: clientId=${clientId}, ioa=${ioa}, timestamp=${timestamp}, asduAddress=${asduAddress}`, 2);
-                server.sendCommands(clientId, [{
+                enqueueCommands(clientId, [{
                   typeId: 103,
                   ioa: 0,
                   timestamp,
@@ -769,7 +861,7 @@ module.exports = function (plugin) {
                 break;
               default:
                 plugin.log(`Неизвестный тип команды typeId=${typeId}, clientId=${clientId}, ioa=${ioa}, value=${val}, asduAddress=${asduAddress}`, 2);
-                server.sendCommands(clientId, [{
+                enqueueCommands(clientId, [{
                   typeId,
                   ioa,
                   value: val,
@@ -779,7 +871,7 @@ module.exports = function (plugin) {
             }
           } catch (e) {
             plugin.log(`ОШИБКА команды: ${util.inspect(e)}`, 2);
-            server.sendCommands(clientId, [{
+            enqueueCommands(clientId, [{
               typeId: cmd.typeId,
               ioa: cmd.ioa,
               value: cmd.val,
