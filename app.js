@@ -244,13 +244,14 @@ module.exports = function (plugin) {
           } else {
             value = Number(item.value);
           }
+          //plugin.log("item " + util.inspect(item))
           const event = {
             typeId: Number(curitem.ioObjMtype),
             ioa: Number(curitem.address),
             value,
             asduAddress: Number(curitem.asdu),
             timestamp: Date.now(),
-            quality: item.chstatus == undefined ? 128 : 0,
+            quality: item.chstatus > 0 ? 128 : 0,
             cot: 3
           };
           curData[curitem.did + '.' + curitem.prop] = event;
