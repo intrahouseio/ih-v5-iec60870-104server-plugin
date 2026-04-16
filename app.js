@@ -11,7 +11,9 @@ module.exports = function (plugin) {
   let clients = {}; // { clientId: { activated, asdu } }
   let ipAsduToClientId = {}; // { ipAsdu: clientId }
   let periodicTasks = {};
+  const execTimers = {};
   let filter = filterExtraChannels();
+
   subExtraChannels(filter);
 
   const eventBuffer = [];
@@ -138,7 +140,7 @@ module.exports = function (plugin) {
 
     // Логируем распределение по приоритетам
     let logMsg = `📥 Добавлено ${batches.length} батчей для ${clientId}: `;
-    for (let p of [0,1,2,3]) {
+    for (let p of [0, 1, 2, 3]) {
       if (priorityCounts[p]) logMsg += `P${p}:${priorityCounts[p]} `;
     }
     plugin.log(logMsg, 3);
@@ -244,13 +246,12 @@ module.exports = function (plugin) {
           } else {
             value = Number(item.value);
           }
-          //plugin.log("item " + util.inspect(item))
           const event = {
             typeId: Number(curitem.ioObjMtype),
             ioa: Number(curitem.address),
             value,
             asduAddress: Number(curitem.asdu),
-            timestamp: Date.now(),
+            timestamp: Date.now() + Number(params.tzondevice.slice(3)) * (3600000),
             quality: item.chstatus > 0 ? 128 : 0,
             cot: 3
           };
@@ -271,7 +272,7 @@ module.exports = function (plugin) {
             ioa: Number(curitem.address),
             value,
             asduAddress: Number(curitem.asdu),
-            timestamp: Date.now(),
+            timestamp: Date.now() + Number(params.tzondevice.slice(3)) * (3600000),
             cot: 3
           };
           curCmd[curitem.did + '.' + curitem.prop] = cmd;
@@ -499,7 +500,26 @@ module.exports = function (plugin) {
     return true;
   }
 
-  function handleControlCommand(clientId, typeId, ioa, val, ql, timestamp, asduAddress, item, cmdItem, bselCmd, sboClient, sboKey, responseTypeId) {
+
+  function handleControlCommand(
+    clientId,
+    typeId,
+    ioa,
+    val,
+    ql,
+    timestamp,
+    asduAddress,
+    item,
+    cmdItem,
+    bselCmd,
+    sboClient,
+    sboKey,
+    responseTypeId
+  ) {
+
+    // -----------------------------
+    // 1. Проверка объекта
+    // -----------------------------
     if (!item) {
       enqueueCommands(clientId, [{
         typeId,
@@ -509,7 +529,7 @@ module.exports = function (plugin) {
         asduAddress,
         cot: 10
       }]);
-      plugin.log(`Ошибка для команды typeId=${typeId}: Неизвестный объект, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Неизвестный объект ioa=${ioa}`, 2);
       return;
     }
 
@@ -522,10 +542,13 @@ module.exports = function (plugin) {
         asduAddress,
         cot: 10
       }]);
-      plugin.log(`Ошибка для команды typeId=${typeId}: Нет команды в curCmd, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Нет команды в curCmd ioa=${ioa}`, 2);
       return;
     }
 
+    // -----------------------------
+    // 2. Валидация
+    // -----------------------------
     if (!validateCommandValue(typeId, val)) {
       enqueueCommands(clientId, [{
         typeId,
@@ -535,10 +558,13 @@ module.exports = function (plugin) {
         asduAddress,
         cot: 10
       }]);
-      plugin.log(`Недопустимое значение ${val} для typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+      plugin.log(`Недопустимое значение ${val}`, 2);
       return;
     }
 
+    // -----------------------------
+    // 3. Нормализация значения
+    // -----------------------------
     let processedVal;
 
     if (typeId === 45 || typeId === 58) {
@@ -551,26 +577,23 @@ module.exports = function (plugin) {
       processedVal = val;
     }
 
+    // -----------------------------
+    // 4. Определение фазы SBO
+    // -----------------------------
+    const isExecutePhase = (cmdExec === 'direct') ||
+      (cmdExec === 'select' && !bselCmd && sboClient?.[sboKey]);
+
+    // -----------------------------
+    // 5. QOC обработка (только логика)
+    // -----------------------------
     let execTime = null;
-    let commandType = 'none';
+
     if ([45, 46, 58, 59].includes(typeId)) {
       switch (ql) {
-        case 0:
-          execTime = execDefault;
-          commandType = 'default';
-          break;
-        case 1:
-          execTime = execShort;
-          commandType = 'short';
-          break;
-        case 2:
-          execTime = execLong;
-          commandType = 'long';
-          break;
-        case 3:
-          execTime = null;
-          commandType = 'persistent';
-          break;
+        case 0: execTime = execDefault; break;
+        case 1: execTime = execShort; break;
+        case 2: execTime = execLong; break;
+        case 3: execTime = null; break;
         default:
           enqueueCommands(clientId, [{
             typeId,
@@ -580,35 +603,29 @@ module.exports = function (plugin) {
             asduAddress,
             cot: 10
           }]);
-          plugin.log(`Недопустимое QOC ${ql} для typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+          plugin.log(`Недопустимый QOC=${ql}`, 2);
           return;
       }
-      plugin.log(`Команда typeId=${typeId}, ioa=${ioa}, asduAddress=${asduAddress}: QOC=${ql} (${commandType}), execTime=${execTime === null ? 'нет' : execTime + 'ms'}`, 2);
     }
 
-    if (cmdExec === 'direct' && bselCmd) {
-      enqueueCommands(clientId, [{
-        typeId,
-        ioa,
-        value: processedVal,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
-      plugin.log(`Выборка не разрешена в прямом режиме для typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
-    } else if (cmdExec === 'select' && !bselCmd && !sboClient[sboKey]) {
-      enqueueCommands(clientId, [{
-        typeId,
-        ioa,
-        value: processedVal,
-        timestamp,
-        asduAddress,
-        cot: 10
-      }]);
-      plugin.log(`Прямая команда не разрешена в режиме SBO для typeId=${typeId}: ioa=${ioa}, asduAddress=${asduAddress}`, 2);
-    } else if (cmdExec === 'select' && bselCmd) {
+    plugin.log(
+      `Команда ioa=${ioa}, QOC=${ql}, execTime=${execTime}`,
+      2
+    );
+
+    // =====================================================
+    // 6. SELECT PHASE (только регистрация SBO)
+    // =====================================================
+    if (cmdExec === 'select' && bselCmd) {
       sboSelections[clientId] = sboSelections[clientId] || {};
-      sboSelections[clientId][sboKey] = { ioa, asduAddress, timestamp: Date.now() };
+
+      sboSelections[clientId][sboKey] = {
+        ioa,
+        asduAddress,
+        timestamp: Date.now(),
+        phase: 'selected'
+      };
+
       enqueueCommands(clientId, [{
         typeId,
         ioa,
@@ -617,95 +634,37 @@ module.exports = function (plugin) {
         asduAddress,
         cot: 7
       }]);
-      plugin.log(`SBO выборка успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+
       cleanupSboSelections();
-    } else {
-      if (cmdExec === 'direct' || (cmdExec === 'select' && sboClient[sboKey] && sboClient[sboKey].ioa === ioa && sboClient[sboKey].asduAddress === asduAddress)) {
-        try {
-          enqueueCommands(clientId, [{
-            typeId,
-            ioa,
-            value: processedVal,
-            timestamp,
-            asduAddress,
-            cot: 7
-          }]);
 
-          const itemKey = `${asduAddress}.${ioa}`;
-          const filterItem = filter[itemKey];
-          if (filterItem) {
-            const { did, prop } = filterItem;
-            try {
-              plugin.send({
-                type: 'command',
-                command: 'setval',
-                did,
-                prop,
-                value: processedVal
-              });
-              plugin.log(`Отправлена команда setval: did=${did}, prop=${prop}, value=${processedVal}`, 2);
-            } catch (e) {
-              plugin.log(`Ошибка в plugin.send: ${util.inspect(e)}`, 2);
-            }
+      plugin.log(`SBO SELECT OK ioa=${ioa}`, 2);
+      return;
+    }
 
-            if ([45, 46, 58, 59].includes(typeId) && execTime !== null && execTime > 0) {
-              setTimeout(() => {
-                try {
-                  plugin.send({
-                    type: 'command',
-                    command: 'setval',
-                    did,
-                    prop,
-                    value: 0
-                  });
-                  plugin.log(`Отправлена команда сброса: did=${did}, prop=${prop}, value=0 после ${execTime}ms`, 2);
-                } catch (e) {
-                  plugin.log(`Ошибка в plugin.send (сброс): ${util.inspect(e)}`, 2);
-                }
-              }, execTime);
-            }
-          } else {
-            plugin.log(`Не найден элемент фильтра для asduAddress=${asduAddress}, ioa=${ioa}, невозможно отправить setval`, 2);
-          }
+    // =====================================================
+    // 7. EXECUTE PHASE
+    // =====================================================
+    if (!isExecutePhase) {
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: processedVal,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
 
-          let processedValResp = processedVal;
-          if (responseTypeId === 45 || responseTypeId === 58) {
-            processedValResp = val === 1;
-          } else if ([46, 47, 49, 51, 59, 60, 62, 64].includes(responseTypeId)) {
-            processedValResp = Math.round(val);
-          } else if ([50, 61, 63].includes(responseTypeId)) {
-            processedValResp = String(val);
-          } else {
-            processedValResp = val;
-          }
+      plugin.log(`EXECUTE без SBO ioa=${ioa}`, 2);
+      return;
+    }
 
-          enqueueCommands(clientId, [{
-            typeId: responseTypeId,
-            ioa,
-            value: processedValResp,
-            timestamp,
-            asduAddress,
-            cot: 20
-          }]);
+    // -----------------------------
+    // 8. Проверка SBO соответствия
+    // -----------------------------
+    if (cmdExec === 'select') {
+      const sbo = sboSelections?.[clientId]?.[sboKey];
 
-          if (cmdExec === 'select') {
-            delete sboSelections[clientId][sboKey];
-            plugin.log(`SBO операция успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
-          } else {
-            plugin.log(`Прямая команда успешна для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
-          }
-        } catch (e) {
-          plugin.log(`Ошибка отправки команды для клиента ${clientId}: ${util.inspect(e)}`, 2);
-          enqueueCommands(clientId, [{
-            typeId,
-            ioa,
-            value: processedVal,
-            timestamp,
-            asduAddress,
-            cot: 10
-          }]);
-        }
-      } else {
+      if (!sbo || sbo.ioa !== ioa || sbo.asduAddress !== asduAddress) {
         enqueueCommands(clientId, [{
           typeId,
           ioa,
@@ -714,8 +673,91 @@ module.exports = function (plugin) {
           asduAddress,
           cot: 10
         }]);
-        plugin.log(`SBO операция не удалась: Нет предварительной выборки для клиента ${clientId}, ioa=${ioa}, asduAddress=${asduAddress}`, 2);
+
+        plugin.log(`SBO mismatch ioa=${ioa}`, 2);
+        return;
       }
+
+      delete sboSelections[clientId][sboKey];
+    }
+
+    // =====================================================
+    // 9. EXECUTION (основная логика)
+    // =====================================================
+
+    try {
+      // --- отправка в IEC ---
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: processedVal,
+        timestamp,
+        asduAddress,
+        cot: 7
+      }]);
+
+      // --- IH side-effect ---
+      const itemKey = `${asduAddress}.${ioa}`;
+      const filterItem = filter[itemKey];
+
+      if (filterItem) {
+        const { did, prop } = filterItem;
+
+        plugin.send({
+          type: 'command',
+          command: 'setval',
+          did,
+          prop,
+          value: val
+        });
+
+        plugin.log(`IH setval ioa=${ioa}`, 2);
+
+        // =================================================
+        // 10. RESET (ТОЛЬКО НА EXECUTE)
+        // =================================================
+        if (
+          execTime !== null &&
+          execTime > 0
+        ) {
+          const timerKey = `${clientId}_${asduAddress}_${ioa}_${typeId}`;
+
+          if (execTimers[timerKey]) {
+            clearTimeout(execTimers[timerKey]);
+          }
+
+          execTimers[timerKey] = setTimeout(() => {
+            try {
+              plugin.send({
+                type: 'command',
+                command: 'setval',
+                did,
+                prop,
+                value: 0
+              });
+
+              plugin.log(`RESET ioa=${ioa}`, 2);
+            } finally {
+              delete execTimers[timerKey];
+            }
+          }, execTime);
+        }
+
+      } else {
+        plugin.log(`filterItem not found ioa=${ioa}`, 2);
+      }
+
+    } catch (e) {
+      plugin.log(`ERROR command ioa=${ioa}: ${util.inspect(e)}`, 2);
+
+      enqueueCommands(clientId, [{
+        typeId,
+        ioa,
+        value: processedVal,
+        timestamp,
+        asduAddress,
+        cot: 10
+      }]);
     }
   }
 
