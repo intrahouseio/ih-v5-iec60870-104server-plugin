@@ -13,269 +13,294 @@ module.exports = function (plugin) {
   let periodicTasks = {};
   const execTimers = {};
   let filter = filterExtraChannels();
-
   subExtraChannels(filter);
+  initializeCurrentValues();
 
   const eventBuffer = [];
   const clientPointers = {};
   const sboSelections = {};
   const SBO_TIMEOUT = 30000;
-  const MAX_BATCH_SIZE = 50; // увеличено для эффективности
 
-  // 🚚 Приоритетные очереди отправки
-  const PRIORITY_HIGH = 0;      // Подтверждения, команды управления
-  const PRIORITY_MEDIUM = 1;    // Ответы на запросы
-  const PRIORITY_LOW = 2;       // Текущие значения
-  const PRIORITY_BACKGROUND = 3; // Телеметрия, периодика
+  // ==================== ПРИОРИТЕТЫ (оставляем как было) ====================
+  const PRIORITY_HIGH = 0;      // команды управления, подтверждения
+  const PRIORITY_MEDIUM = 1;    // ответы на опросы
+  const PRIORITY_LOW = 2;       // текущие значения
+  const PRIORITY_BACKGROUND = 3;// периодические данные
 
-  let priorityQueues = {
-    0: [], // high
-    1: [], // medium
-    2: [], // low
-    3: []  // background
-  };
+  let priorityQueues = { 0: [], 1: [], 2: [], 3: [] };
 
+  // ==================== УПРОЩЁННЫЕ НАСТРОЙКИ ====================
+  const MAX_BATCH_SIZE = 20;           // группируем по 20 команд в одном батче
+  const BATCHES_PER_TICK = 8;          // сколько батчей обрабатываем за один тик
+  const PROCESS_INTERVAL_MS = 40;      // интервал между обработками очереди
+  const MAX_QUEUE_SIZE = 8000;
+  const MAX_SPONTANEOUS_BUFFER = 10000;// максимум неотправленных спонтанных сообщений
+  const T1_MS = Number(params.t1) || 15000; // время ожидания при переполнении очереди сервера
+
+  let spontaneousBuffer = [];   // сюда складываем неотправленные низкоприоритетные события
   let isProcessing = false;
-  const BATCHES_PER_TICK = 5;
-  const MAX_TOTAL_QUEUE_SIZE = 500;
-  const PROCESS_INTERVAL_MS = 10;
+  let queueOverloadLogged = false;       // ← новый флаг
+  let lastQueueSizeLog = 0;
+  let cooldownUntil = 0;        // когда можно продолжать отправку после T1
 
   const validCmdExec = ['direct', 'select'];
   const cmdExec = validCmdExec.includes(params.cmdExec) ? params.cmdExec : 'direct';
-  if (!validCmdExec.includes(params.cmdExec)) {
-    plugin.log(`Недопустимое значение cmdExec: ${params.cmdExec}, используется по умолчанию 'direct'`, 2);
-  }
-
   const useBuffer = params.useBuffer;
-  plugin.log(`Режим буфера: ${useBuffer ? 'включён' : 'выключен'}`, 2);
-
-  if (cmdExec === 'direct') {
-    Object.keys(sboSelections).forEach(clientId => delete sboSelections[clientId]);
-  }
-
   const execDefault = Number(params.execdefault) || 2000;
   const execShort = Number(params.execshort) || 500;
   const execLong = Number(params.execlong) || 5000;
   plugin.log(`Времена выполнения: QOC=0=${execDefault}ms, QOC=1=${execShort}ms, QOC=2=${execLong}ms, QOC=3=persistent`, 2);
 
-  function chunkArray(array, size) {
-    const grouped = {};
-    array.forEach(item => {
-      const key = `${item.asduAddress}_${item.typeId}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-      grouped[key].push(item);
-    });
+  // ==================== ИНИЦИАЛИЗАЦИЯ ПРИ СТАРТЕ ====================
+  async function initializeCurrentValues() {
+    if (!extraChannels || extraChannels.length === 0) {
+      plugin.log("Нет extraChannels для инициализации", 2);
+      return;
+    }
 
+    const didList = [...new Set(extraChannels.filter(ch => ch.extype === 'pub').map(ch => ch.did))];
+
+    plugin.log(`Запрашиваем начальные значения для ${didList.length} устройств...`, 2);
+
+    try {
+      const result = await plugin.get('devices', { did: didList });
+      if (Array.isArray(result) && result.length > 0) {
+        let count = 0;
+
+        result.forEach(item => {
+          Object.keys(item.props).forEach(prop => {
+            const curitem = filter[item._id + "." + prop];
+            if (!curitem || curitem.extype !== 'pub') return;
+
+            const key = item._id + '.' + prop;
+
+            const value = (curitem.ioObjMtype == 1 || curitem.ioObjMtype == 30)
+              ? Boolean(item.props[prop].value)
+              : Number(item.props[prop].value);
+
+            curData[key] = {
+              typeId: Number(curitem.ioObjMtype),
+              ioa: Number(curitem.address),
+              value: value,
+              asduAddress: Number(curitem.asdu),
+              timestamp: item.props[prop].ts + Number(params.tzondevice.slice(3)) * 3600000,
+              quality: item.props[prop].chstatus > 0 ? 128 : 0,
+              cot: 20
+            };
+            count++;
+          })
+
+        });
+
+        plugin.log(`✅ Успешно инициализировано ${count} точек `, 2);
+      }
+    } catch (e) {
+      plugin.log(`❌ Ошибка получения начальных значений: ${e.message}`, 1);
+    }
+  }
+
+  // ==================== chunkArray — группировка по ASDU ====================
+  function chunkArray(items, size) {
+    if (!items.length) return [];
+    const groupedByAsdu = {};
+    items.forEach(item => {
+      const key = String(item.asduAddress || 0);
+      if (!groupedByAsdu[key]) groupedByAsdu[key] = [];
+      groupedByAsdu[key].push(item);
+    });
     const result = [];
-    Object.values(grouped).forEach(group => {
+    Object.values(groupedByAsdu).forEach(group => {
       for (let i = 0; i < group.length; i += size) {
         result.push(group.slice(i, i + size));
       }
     });
-
     return result;
   }
 
-  // 🎯 Определяем приоритет батча по его содержимому
   function getBatchPriority(batch) {
-    const firstCmd = batch[0];
-    if (!firstCmd) return PRIORITY_BACKGROUND;
+    const first = batch[0];
+    if (!first) return PRIORITY_BACKGROUND;
 
-    // HIGH: подтверждения, команды управления
-    if ([7, 10].includes(firstCmd.cot)) {
+    if ([7, 10].includes(first.cot) || [45, 46, 47, 48, 49, 50, 51, 58, 59, 60, 61, 62, 63, 64].includes(first.typeId)) {
       return PRIORITY_HIGH;
     }
-    if ([45, 46, 47, 48, 49, 50, 51, 58, 59, 60, 61, 62, 63, 64].includes(firstCmd.typeId)) {
-      return PRIORITY_HIGH;
-    }
-
-    // MEDIUM: ответы на запросы
-    if ([5, 20, 37].includes(firstCmd.cot)) {
+    if ([5, 20, 37].includes(first.cot) || [100, 101, 102, 103].includes(first.typeId)) {
       return PRIORITY_MEDIUM;
     }
-    if ([100, 101, 102, 103].includes(firstCmd.typeId)) {
-      return PRIORITY_MEDIUM;
-    }
-
-    // LOW: текущие значения
-    if (firstCmd.cot === 20) {
-      return PRIORITY_LOW;
-    }
-
-    // BACKGROUND: всё остальное (телеметрия)
+    if (first.cot === 20) return PRIORITY_LOW;
     return PRIORITY_BACKGROUND;
   }
 
-  // 📥 Добавляет команды в приоритетную очередь
+  // ==================== enqueueCommands ====================
   function enqueueCommands(clientId, commands) {
-    if (!Array.isArray(commands)) {
-      commands = [commands];
-    }
+    if (!Array.isArray(commands)) commands = [commands];
+    if (commands.length === 0) return;
 
     const client = clients[clientId];
-    if (!client || !client.activated) {
-      plugin.log(`Клиент ${clientId} не активен — команды не добавлены в очередь`, 3);
+    if (!client || client.activated !== 1) return;
+
+    const totalQueue = Object.values(priorityQueues).reduce((a, q) => a + q.length, 0);
+
+    // Защита от переполнения
+    if (totalQueue > MAX_QUEUE_SIZE && getBatchPriority(commands) >= PRIORITY_LOW) {
+      if (!queueOverloadLogged) {
+        plugin.log(`🚨 ПЕРЕПОЛНЕНИЕ ОЧЕРЕДИ! (${totalQueue} батчей). Включаем защиту и копим в буфер.`, 2);
+        queueOverloadLogged = true;
+      }
+      // Новые низкоприоритетные данные отбрасываем
       return;
     }
 
-    // Группируем в батчи
     const batches = chunkArray(commands, MAX_BATCH_SIZE);
-
-    const priorityCounts = {};
 
     batches.forEach(batch => {
       const priority = getBatchPriority(batch);
-      priorityCounts[priority] = (priorityCounts[priority] || 0) + 1;
-
       priorityQueues[priority].push({
         clientId,
         batch,
         attempts: 0,
         firstAttemptTime: Date.now(),
-        priority
+        priority,
+        enqueueTime: Date.now()
       });
     });
 
-    // Логируем распределение по приоритетам
-    let logMsg = `📥 Добавлено ${batches.length} батчей для ${clientId}: `;
-    for (let p of [0, 1, 2, 3]) {
-      if (priorityCounts[p]) logMsg += `P${p}:${priorityCounts[p]} `;
-    }
-    plugin.log(logMsg, 3);
-
-    // Запускаем обработчик, если не запущен
-    if (!isProcessing) {
-      processQueue();
-    }
+    if (!isProcessing) processQueue();
   }
 
-  // 🔄 Обрабатывает очередь по приоритетам
+  // ==================== processQueue ====================
   async function processQueue() {
     if (isProcessing) return;
     isProcessing = true;
 
-    // Защита от переполнения
-    const totalSize = Object.values(priorityQueues).reduce((sum, q) => sum + q.length, 0);
-    if (totalSize > MAX_TOTAL_QUEUE_SIZE) {
-      let toDrop = totalSize - MAX_TOTAL_QUEUE_SIZE;
-      for (let p = PRIORITY_BACKGROUND; p >= PRIORITY_HIGH; p--) {
-        if (toDrop <= 0) break;
-        const dropFromThis = Math.min(toDrop, priorityQueues[p].length);
-        if (dropFromThis > 0) {
-          priorityQueues[p].splice(0, dropFromThis);
-          toDrop -= dropFromThis;
-          plugin.log(`⚠️ Переполнение: удалено ${dropFromThis} батчей с приоритетом ${p}`, 2);
-        }
-      }
+    const now = Date.now();
+
+    if (now < cooldownUntil) {
+      isProcessing = false;
+      setTimeout(processQueue, PROCESS_INTERVAL_MS);
+      return;
     }
 
     let processed = 0;
 
-    // Обрабатываем от высшего приоритета к низшему
     for (let priority = PRIORITY_HIGH; priority <= PRIORITY_BACKGROUND; priority++) {
       while (processed < BATCHES_PER_TICK && priorityQueues[priority].length > 0) {
         const task = priorityQueues[priority].shift();
         if (!task) break;
 
-        const { clientId, batch, attempts, firstAttemptTime } = task;
-
-        const client = clients[clientId];
-        if (!client || !client.activated) {
-          plugin.log(`🔌 Клиент ${clientId} отключён — батч P${priority} отброшен (попыток: ${attempts})`, 3);
-          continue;
-        }
-
-        // Таймаут жизни батча
-        if (Date.now() - firstAttemptTime > 30000) {
-          plugin.log(`⏳ Батч P${priority} для ${clientId} устарел (>30сек) — отбрасываем после ${attempts} попыток`, 3);
-          continue;
-        }
+        const client = clients[task.clientId];
+        if (!client || client.activated !== 1) continue;
 
         try {
-          const newAttempts = attempts + 1;
-          const success = server.sendCommands(clientId, batch);
+          const success = await server.sendCommands(task.clientId, task.batch, 800);
 
           if (success) {
-            plugin.log(`✅ Отправлен батч (${batch.length} команд, P${priority}) клиенту ${clientId} (попытка ${newAttempts})`, 3);
+            // Всё хорошо
           } else {
-            if (newAttempts >= 3) {
-              plugin.log(`❌ Батч P${priority} для ${clientId} не отправлен после ${newAttempts} попыток — отбрасываем`, 3);
-            } else {
-              priorityQueues[priority].unshift({ ...task, attempts: newAttempts });
-              plugin.log(`⚠️ Ошибка отправки P${priority} — возвращаем в очередь (попытка ${newAttempts})`, 4);
+            plugin.log(`🚨 sendCommands вернул false — очередь библиотеки переполнена. Ждём T1 (${T1_MS} мс)`, 2);
+            cooldownUntil = now + T1_MS;
+
+            if (priority >= PRIORITY_LOW) {
+              task.batch.forEach(item => spontaneousBuffer.push(item));
+              if (spontaneousBuffer.length > MAX_SPONTANEOUS_BUFFER) {
+                spontaneousBuffer.splice(0, spontaneousBuffer.length - MAX_SPONTANEOUS_BUFFER / 2);
+              }
+            } else if (task.attempts < 3) {
+              task.attempts++;
+              priorityQueues[priority].unshift(task);
             }
+            break;
           }
         } catch (e) {
-          const newAttempts = attempts + 1;
-          if (newAttempts >= 3) {
-            plugin.log(`❌ Исключение при отправке P${priority} — отбрасываем после ${newAttempts} попыток: ${e.message}`, 3);
-          } else {
-            priorityQueues[priority].unshift({ ...task, attempts: newAttempts });
-            plugin.log(`⚠️ Исключение P${priority} (попытка ${newAttempts}): ${e.message}`, 4);
-          }
-        } finally {
-          // Обновляем указатель буфера для событий
-          if (client.asdu && batch.some(cmd => cmd.cot === 3 || cmd.cot === 48)) {
-            const ipAsdu = `${clientId.split(':')[0]}:${client.asdu}`;
-            updateClientPointer(ipAsdu, eventBuffer.length);
+          if (task.attempts < 3 && clients[task.clientId]?.activated === 1) {
+            task.attempts++;
+            priorityQueues[priority].unshift(task);
           }
         }
 
         processed++;
+        await sleep(8);
       }
       if (processed >= BATCHES_PER_TICK) break;
+    }
+
+    // === Умное логирование состояния очереди ===
+    const currentTotal = Object.values(priorityQueues).reduce((a, q) => a + q.length, 0);
+
+    if (currentTotal > MAX_QUEUE_SIZE) {
+      if (!queueOverloadLogged) {
+        plugin.log(`🚨 ОЧЕРЕДЬ ПЕРЕПОЛНЕНА: ${currentTotal} батчей (> ${MAX_QUEUE_SIZE}). Новые спонтанные данные отбрасываются.`, 2);
+        queueOverloadLogged = true;
+      }
+    } else if (queueOverloadLogged && currentTotal < MAX_QUEUE_SIZE * 0.7) {
+      plugin.log(`✅ Очередь вернулась в норму: ${currentTotal} батчей.`, 2);
+      queueOverloadLogged = false;
+    }
+
+    // Логируем размер очереди не чаще раза в 5 секунд
+    if (now - lastQueueSizeLog > 5000) {
+      plugin.log(`📊 Очередь: ${currentTotal} | Буфер спонтанных: ${spontaneousBuffer.length}`, 2);
+      lastQueueSizeLog = now;
     }
 
     isProcessing = false;
     setTimeout(processQueue, PROCESS_INTERVAL_MS);
   }
 
+  // ==================== Очистка очереди при отключении ====================
+  function clearQueueForClient(clientId) {
+    let cleared = 0;
+    for (let p = PRIORITY_HIGH; p <= PRIORITY_BACKGROUND; p++) {
+      const before = priorityQueues[p].length;
+      priorityQueues[p] = priorityQueues[p].filter(t => t.clientId !== clientId);
+      cleared += before - priorityQueues[p].length;
+    }
+    if (cleared) plugin.log(`🧹 Очищено ${cleared} батчей для отключённого клиента ${clientId}`, 2);
+  }
+
+  // ==================== onSub — теперь просто группируем и кладём в очередь ====================
   function subExtraChannels(filter) {
     plugin.onSub('devices', filter, data => {
       const newEvents = [];
+      //plugin.log("system data " + util.inspect(data))
       data.forEach(item => {
         const curitem = filter[item.did + "." + item.prop];
         if (!curitem) return;
 
         if (curitem.extype === 'pub') {
-          let value;
-          if (curitem.ioObjMtype == 1 || curitem.ioObjMtype == 30) {
-            value = item.value == 1 ? true : false;
-          } else {
-            value = Number(item.value);
-          }
+          let value = (curitem.ioObjMtype == 1 || curitem.ioObjMtype == 30)
+            ? (item.value == 1)
+            : Number(item.value);
+
+          const key = item.did + "." + item.prop;
+
           const event = {
             typeId: Number(curitem.ioObjMtype),
             ioa: Number(curitem.address),
-            value,
+            value: value,
             asduAddress: Number(curitem.asdu),
-            timestamp: Date.now() + Number(params.tzondevice.slice(3)) * (3600000),
+            timestamp: item.ts + Number(params.tzondevice.slice(3)) * 3600000,
             quality: item.chstatus > 0 ? 128 : 0,
             cot: 3
           };
-          curData[curitem.did + '.' + curitem.prop] = event;
+
+          curData[key] = event;        // Обновляем или создаём
           newEvents.push(event);
-          if (useBuffer) {
-            addToEventBuffer(event);
-          }
+
+          if (useBuffer) addToEventBuffer(event);
         } else if (curitem.extype === 'set') {
-          let value;
-          if (curitem.ioObjCtype == 45 || curitem.ioObjCtype == 58) {
-            value = item.value == 1 ? true : false;
-          } else {
-            value = Number(item.value);
-          }
-          const cmd = {
+          // ... (curCmd остаётся без изменений)
+          const value = (curitem.ioObjCtype == 45 || curitem.ioObjCtype == 58)
+            ? (item.value == 1)
+            : Number(item.value);
+          curCmd[curitem.did + '.' + curitem.prop] = {
             typeId: Number(curitem.ioObjCtype),
             ioa: Number(curitem.address),
             value,
             asduAddress: Number(curitem.asdu),
-            timestamp: Date.now() + Number(params.tzondevice.slice(3)) * (3600000),
+            timestamp: Date.now() + Number(params.tzondevice.slice(3)) * 3600000,
             cot: 3
           };
-          curCmd[curitem.did + '.' + curitem.prop] = cmd;
         }
       });
 
@@ -284,10 +309,11 @@ module.exports = function (plugin) {
 
         const status = server.getStatus();
         if (status.connectedClients.length > 0) {
+          const batches = chunkArray(newEvents, MAX_BATCH_SIZE); // ← группировка по 20 по ASDU
           status.connectedClients.forEach(clientId => {
             const client = clients[clientId];
             if (client?.activated === 1) {
-              enqueueCommands(clientId, newEvents);
+              batches.forEach(batch => enqueueCommands(clientId, batch));
             }
           });
         }
@@ -357,25 +383,28 @@ module.exports = function (plugin) {
 
   async function sendCurrentValues(clientId) {
     const client = clients[clientId];
-    if (!client) {
-      plugin.log(`Клиент ${clientId} не найден`, 2);
+    if (!client || client.activated !== 1) {
+      plugin.log(`sendCurrentValues пропущен — клиент ${clientId} неактивен`, 2);
       return;
     }
 
-    const currentValues = Object.values(curData).map(item => ({
+    const values = Object.values(curData).map(item => ({
       ...item,
       cot: 20
     }));
 
-    if (currentValues.length > 0) {
-      try {
-        enqueueCommands(clientId, currentValues);
-      } catch (e) {
-        plugin.log(`Ошибка отправки текущих значений клиенту ${clientId}: ${util.inspect(e)}`, 2);
-      }
-    } else {
-      plugin.log(`Нет текущих значений для отправки клиенту ${clientId}`, 2);
+    if (values.length === 0) {
+      plugin.log(`Предупреждение: curData пустой при отправке текущих значений`, 2);
+      return;
     }
+
+    const batches = chunkArray(values, MAX_BATCH_SIZE);
+
+    batches.forEach(batch => {
+      enqueueCommands(clientId, batch);
+    });
+
+    plugin.log(`📤 Отправлено ${values.length} точек (Current/Interrogation) клиенту ${clientId}`, 2);
   }
 
   async function sendCurrentChanges(clientId) {
@@ -762,19 +791,35 @@ module.exports = function (plugin) {
   }
 
   const server = new IEC104Server((event, data) => {
-    plugin.log(`Событие сервера: ${event}, Данные: ${JSON.stringify(data, null, 2)}`, 2);
+    //plugin.log(`Событие сервера: ${event}, Данные: ${JSON.stringify(data, null, 2)}`, 2);
     if (event === 'data') {
       if (data.type === 'control') {
-        clients[data.clientId] = {
-          activated: data.event === "activated" ? 1 : 0,
-          asdu: clients[data.clientId]?.asdu || null
-        };
+        const clientId = data.clientId;
+
         if (data.event === 'activated') {
-          //sendCurrentChanges(data.clientId);
-        } else if (data.event === 'disconnected') {
-          delete sboSelections[data.clientId];
-          delete clients[data.clientId];
-          plugin.log(`Клиент ${data.clientId} отключён, сохранён в ipAsduToClientId для возможного восстановления`, 2);
+          // Полностью обновляем информацию о клиенте
+          clients[clientId] = {
+            activated: 1,
+            asdu: clients[clientId]?.asdu || null
+          };
+
+          plugin.log(`✅ Клиент ${clientId} подключился и активирован`, 2);
+
+          // Важно: небольшая задержка, чтобы соединение полностью установилось
+          setTimeout(() => {
+            sendCurrentValues(clientId);
+          }, 600);
+
+        }
+        else if (data.event === 'disconnected') {
+          plugin.log(`🔌 Клиент ${clientId} отключился`, 2);
+
+          clearQueueForClient(clientId);
+          delete sboSelections[clientId];
+          // Не удаляем полностью из clients, только деактивируем
+          if (clients[clientId]) {
+            clients[clientId].activated = 0;
+          }
         }
       }
       if (Array.isArray(data)) {
@@ -943,6 +988,14 @@ module.exports = function (plugin) {
       maxClients: Number(params.maxClients)
     }
   });
+
+  // Мониторинг (добавили размер буфера)
+  setInterval(() => {
+    const totalQueue = Object.values(priorityQueues).reduce((a, q) => a + q.length, 0);
+    if (totalQueue > 0 || spontaneousBuffer.length > 0) {
+      plugin.log(`📊 Очередь: ${totalQueue} | Буфер спонтанных: ${spontaneousBuffer.length}`, 2);
+    }
+  }, 10000);
 
   process.on('SIGTERM', () => {
     terminate();
